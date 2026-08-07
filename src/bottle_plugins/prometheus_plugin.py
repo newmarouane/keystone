@@ -18,7 +18,7 @@ def setup():
 def prometheus_plugin(callback):
     """
     Bottle plugin to expose Prometheus metrics
-    https://bottlepy.org/docs/dev/plugindev.html
+    http://bottlepy.org/docs/dev/plugindev.html
     """
     def wrapper(*args, **kwargs):
         actual_response = callback(*args, **kwargs)

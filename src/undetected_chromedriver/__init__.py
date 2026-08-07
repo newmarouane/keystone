@@ -471,7 +471,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self.patcher.executable_path
         )
 
-        super().__init__(
+        super(Chrome, self).__init__(
             service=service,
             options=options,
             keep_alive=keep_alive,
@@ -507,6 +507,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     "Page.addScriptToEvaluateOnNewDocument",
                     {
                         "source": """
+
+                           Object.defineProperty(window, "navigator", {
                                 Object.defineProperty(window, "navigator", {
                                   value: new Proxy(navigator, {
                                     has: (target, key) => (key === "webdriver" ? false : key in target),
@@ -727,8 +729,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def start_session(self, capabilities=None, browser_profile=None):
         if not capabilities:
             capabilities = self.options.to_capabilities()
-        super().start_session(capabilities)
-        # super(Chrome, self).start_session(capabilities, browser_profile) # Original explicit call commented out
+        super(selenium.webdriver.chrome.webdriver.WebDriver, self).start_session(
+            capabilities
+        )
+        # super(Chrome, self).start_session(capabilities, browser_profile)
 
     def find_elements_recursive(self, by, value):
         """

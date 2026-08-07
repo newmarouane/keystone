@@ -3,14 +3,12 @@ import platform
 import sys
 import time
 from datetime import timedelta
-from html import escape
-from urllib.parse import unquote, quote
+from urllib.parse import unquote
 
 from func_timeout import FunctionTimedOut, func_timeout
 from selenium.common import TimeoutException
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.expected_conditions import (
     presence_of_element_located, staleness_of, title_is)
 from selenium.webdriver.common.action_chains import ActionChains
@@ -42,22 +40,17 @@ CHALLENGE_TITLES = [
 ]
 CHALLENGE_SELECTORS = [
     # Cloudflare
-    '#cf-challenge-running', '.ray_id', '.attack-box', '#cf-please-wait', '#challenge-spinner', '#trk_jschal_js', '#turnstile-wrapper', '.lds-ring',
+    '#cf-challenge-running', '.ray_id', '.attack-box', '#cf-please-wait', '#challenge-spinner', '#trk_jschal_js',
     # Custom CloudFlare for EbookParadijs, Film-Paleis, MuziekFabriek and Puur-Hollands
     'td.info #js_info',
     # Fairlane / pararius.com
     'div.vc div.text-box h2'
 ]
-
-TURNSTILE_SELECTORS = [
-    "input[name='cf-turnstile-response']"
-]
-
 SHORT_TIMEOUT = 1
 SESSIONS_STORAGE = SessionsStorage()
 
 
-def test_browser_installation():
+def test_browser_installation_uc():
     logging.info("Testing web browser installation...")
     logging.info("Platform: " + platform.platform())
 
@@ -76,7 +69,7 @@ def test_browser_installation():
         logging.info("Chrome / Chromium major version: " + chrome_major_version)
 
     logging.info("Launching web browser...")
-    user_agent = utils.get_user_agent()
+    user_agent = utils.get_user_agent_uc()
     logging.info("FlareSolverr User-Agent: " + user_agent)
     logging.info("Test successful!")
 
@@ -85,7 +78,7 @@ def index_endpoint() -> IndexResponse:
     res = IndexResponse({})
     res.msg = "FlareSolverr is ready!"
     res.version = utils.get_flaresolverr_version()
-    res.userAgent = utils.get_user_agent()
+    res.userAgent = utils.get_user_agent_uc()
     return res
 
 
@@ -126,7 +119,7 @@ def _controller_v1_handler(req: V1RequestBase) -> V1ResponseBase:
         logging.warning("Request parameter 'userAgent' was removed in FlareSolverr v2.")
 
     # set default values
-    if req.maxTimeout is None or int(req.maxTimeout) < 1:
+    if req.maxTimeout is None or req.maxTimeout < 1:
         req.maxTimeout = 60000
 
     # execute the command
@@ -227,7 +220,7 @@ def _cmd_sessions_destroy(req: V1RequestBase) -> V1ResponseBase:
 
 
 def _resolve_challenge(req: V1RequestBase, method: str) -> ChallengeResolutionT:
-    timeout = int(req.maxTimeout) / 1000
+    timeout = req.maxTimeout / 1000
     driver = None
     try:
         if req.session:
@@ -243,7 +236,7 @@ def _resolve_challenge(req: V1RequestBase, method: str) -> ChallengeResolutionT:
 
             driver = session.driver
         else:
-            driver = utils.get_webdriver(req.proxy)
+            driver = utils.get_webdriver_uc(req.proxy)
             logging.debug('New instance of webdriver has been created to perform the request')
         return func_timeout(timeout, _evil_logic, (req, driver, method))
     except FunctionTimedOut:
@@ -258,17 +251,21 @@ def _resolve_challenge(req: V1RequestBase, method: str) -> ChallengeResolutionT:
             logging.debug('A used instance of webdriver has been destroyed')
 
 
-def click_verify(driver: WebDriver, num_tabs: int = 1):
+def click_verify(driver: WebDriver):
     try:
         logging.debug("Try to find the Cloudflare verify checkbox...")
-        actions = ActionChains(driver)
-        actions.pause(5)
-        for _ in range(num_tabs):
-            actions.send_keys(Keys.TAB).pause(0.1)
-        actions.pause(1)
-        actions.send_keys(Keys.SPACE).perform()
-        
-        logging.debug(f"Cloudflare verify checkbox clicked after {num_tabs} tabs!")
+        iframe = driver.find_element(By.XPATH, "//iframe[starts-with(@id, 'cf-chl-widget-')]")
+        driver.switch_to.frame(iframe)
+        checkbox = driver.find_element(
+            by=By.XPATH,
+            value='//*[@id="challenge-stage"]/div/label/input',
+        )
+        if checkbox:
+            actions = ActionChains(driver)
+            actions.move_to_element_with_offset(checkbox, 5, 7)
+            actions.click(checkbox)
+            actions.perform()
+            logging.debug("Cloudflare verify checkbox found and clicked!")
     except Exception:
         logging.debug("Cloudflare verify checkbox not found on the page.")
     finally:
@@ -291,90 +288,42 @@ def click_verify(driver: WebDriver, num_tabs: int = 1):
 
     time.sleep(2)
 
-def _get_turnstile_token(driver: WebDriver, tabs: int):
-    token_input = driver.find_element(By.CSS_SELECTOR, "input[name='cf-turnstile-response']")
-    current_value = token_input.get_attribute("value")
-    while True:
-        click_verify(driver, num_tabs=tabs)
-        turnstile_token = token_input.get_attribute("value")
-        if turnstile_token:
-            if turnstile_token != current_value:
-                logging.info(f"Turnstile token: {turnstile_token}")
-                return turnstile_token
-        logging.debug(f"Failed to extract token possibly click failed")        
 
-        # reset focus
-        driver.execute_script("""
-            let el = document.createElement('button');
-            el.style.position='fixed';
-            el.style.top='0';
-            el.style.left='0';
-            document.body.prepend(el);
-            el.focus();
-        """)
-        time.sleep(1)
+def get_correct_window(driver: WebDriver) -> WebDriver:
+    if len(driver.window_handles) > 1:
+        for window_handle in driver.window_handles:
+            driver.switch_to.window(window_handle)
+            current_url = driver.current_url
+            if not current_url.startswith("devtools://devtools"):
+                return driver
+    return driver
 
-def _resolve_turnstile_captcha(req: V1RequestBase, driver: WebDriver):
-    turnstile_token = None
-    if req.tabs_till_verify is not None:
-        logging.debug(f'Navigating to... {req.url} in order to pass the turnstile challenge')
-        driver.get(req.url)
+def switch_to_new_tab(driver: WebDriver, url: str) -> None:
+    logging.debug("Opening new tab...")
+    driver.execute_script(f"window.open('{url}', 'new tab')")
+    time.sleep(4)
+    logging.debug("Closing original tab...")
+    driver.close()
 
-        turnstile_challenge_found = False
-        for selector in TURNSTILE_SELECTORS:
-            found_elements = driver.find_elements(By.CSS_SELECTOR, selector)   
-            if len(found_elements) > 0:
-                turnstile_challenge_found = True
-                logging.info("Turnstile challenge detected. Selector found: " + selector)
-                break
-        if turnstile_challenge_found:
-            turnstile_token = _get_turnstile_token(driver=driver, tabs=req.tabs_till_verify)
-        else:
-            logging.debug(f'Turnstile challenge not found')
-    return turnstile_token
+def access_page(driver: WebDriver, url: str) -> None:
+    driver.get(url)
+    driver.start_session()
+    driver.start_session()  # required to bypass Cloudflare
+
 
 def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> ChallengeResolutionT:
     res = ChallengeResolutionT({})
     res.status = STATUS_OK
     res.message = ""
 
-    # optionally block resources like images/css/fonts using CDP
-    disable_media = utils.get_config_disable_media()
-    if req.disableMedia is not None:
-        disable_media = req.disableMedia
-    if disable_media:
-        block_urls = [
-            # Images
-            "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.bmp", "*.svg", "*.ico",
-            "*.PNG", "*.JPG", "*.JPEG", "*.GIF", "*.WEBP", "*.BMP", "*.SVG", "*.ICO",
-            "*.tiff", "*.tif", "*.jpe", "*.apng", "*.avif", "*.heic", "*.heif",
-            "*.TIFF", "*.TIF", "*.JPE", "*.APNG", "*.AVIF", "*.HEIC", "*.HEIF",
-            # Stylesheets
-            "*.css",
-            "*.CSS",
-            # Fonts
-            "*.woff", "*.woff2", "*.ttf", "*.otf", "*.eot",
-            "*.WOFF", "*.WOFF2", "*.TTF", "*.OTF", "*.EOT"
-        ]
-        try:
-            logging.debug("Network.setBlockedURLs: %s", block_urls)
-            driver.execute_cdp_cmd("Network.enable", {})
-            driver.execute_cdp_cmd("Network.setBlockedURLs", {"urls": block_urls})
-        except Exception:
-            # if CDP commands are not available or fail, ignore and continue
-            logging.debug("Network.setBlockedURLs failed or unsupported on this webdriver")
 
     # navigate to the page
-    logging.debug(f"Navigating to... {req.url}")
-    turnstile_token = None
-
-    if method == "POST":
+    logging.debug(f'Navigating to... {req.url}')
+    if method == 'POST':
         _post_request(req, driver)
     else:
-        if req.tabs_till_verify is None:
-            driver.get(req.url)
-        else:
-            turnstile_token = _resolve_turnstile_captcha(req, driver)
+        access_page(driver, req.url)
+    driver = get_correct_window(driver)
 
     # set cookies if required
     if req.cookies is not None and len(req.cookies) > 0:
@@ -386,7 +335,8 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
         if method == 'POST':
             _post_request(req, driver)
         else:
-            driver.get(req.url)
+            access_page(driver, req.url)
+        driver = get_correct_window(driver)
 
     # wait for the page
     if utils.get_config_log_html():
@@ -396,7 +346,7 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
 
     # find access denied titles
     for title in ACCESS_DENIED_TITLES:
-        if page_title.startswith(title):
+        if title == page_title:
             raise Exception('Cloudflare has blocked this request. '
                             'Probably your IP is banned for this site, check in your web browser.')
     # find access denied selectors
@@ -427,6 +377,12 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
         while True:
             try:
                 attempt = attempt + 1
+
+                if attempt == 4:
+                    switch_to_new_tab(driver, req.url)
+                    driver = get_correct_window(driver)
+                    time.sleep(4)
+
                 # wait until the title changes
                 for title in CHALLENGE_TITLES:
                     logging.debug("Waiting for title (attempt " + str(attempt) + "): " + title)
@@ -467,20 +423,11 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
     challenge_res.url = driver.current_url
     challenge_res.status = 200  # todo: fix, selenium not provides this info
     challenge_res.cookies = driver.get_cookies()
-    challenge_res.userAgent = utils.get_user_agent(driver)
-    challenge_res.turnstile_token = turnstile_token
+    challenge_res.userAgent = utils.get_user_agent_uc(driver)
 
     if not req.returnOnlyCookies:
         challenge_res.headers = {}  # todo: fix, selenium not provides this info
-
-        if req.waitInSeconds and req.waitInSeconds > 0:
-            logging.info("Waiting " + str(req.waitInSeconds) + " seconds before returning the response...")
-            time.sleep(req.waitInSeconds)
-
         challenge_res.response = driver.page_source
-
-    if req.returnScreenshot:
-        challenge_res.screenshot = driver.get_screenshot_as_base64()
 
     res.result = challenge_res
     return res
@@ -488,10 +435,10 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
 
 def _post_request(req: V1RequestBase, driver: WebDriver):
     post_form = f'<form id="hackForm" action="{req.url}" method="POST">'
-    query_string = req.postData if req.postData and req.postData[0] != '?' else req.postData[1:] if req.postData else ''
+    query_string = req.postData if req.postData[0] != '?' else req.postData[1:]
     pairs = query_string.split('&')
     for pair in pairs:
-        parts = pair.split('=', 1)
+        parts = pair.split('=')
         # noinspection PyBroadException
         try:
             name = unquote(parts[0])
@@ -501,12 +448,10 @@ def _post_request(req: V1RequestBase, driver: WebDriver):
             continue
         # noinspection PyBroadException
         try:
-            value = unquote(parts[1]) if len(parts) > 1 else ''
+            value = unquote(parts[1])
         except Exception:
-            value = parts[1] if len(parts) > 1 else ''
-        # Protection of " character, for syntax
-        value=value.replace('"','&quot;')
-        post_form += f'<input type="text" name="{escape(quote(name))}" value="{escape(quote(value))}"><br>'
+            value = parts[1]
+        post_form += f'<input type="text" name="{name}" value="{value}"><br>'
     post_form += '</form>'
     html_content = f"""
         <!DOCTYPE html>
@@ -516,4 +461,6 @@ def _post_request(req: V1RequestBase, driver: WebDriver):
             <script>document.getElementById('hackForm').submit();</script>
         </body>
         </html>"""
-    driver.get("data:text/html;charset=utf-8,{html_content}".format(html_content=html_content))
+    driver.get("data:text/html;charset=utf-8," + html_content)
+    driver.start_session()
+    driver.start_session()  # required to bypass Cloudflare
