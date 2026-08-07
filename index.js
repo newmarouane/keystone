@@ -29,7 +29,7 @@ app.get("/", async (req, res) => {
   try {
     const browser = await getBrowser();
 
-    const page = await browser.newPage();
+    let page = await browser.newPage();
 
 await page.goto("https://medias24.com/", {
   waitUntil: "domcontentloaded",
