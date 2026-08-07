@@ -1,115 +1,37 @@
 {
-  "name": "@keystone-6/mono-repo",
-  "description": "KeystoneJS monorepo for all the @keystone-6 packages",
-  "private": true,
-  "version": "0.0.0",
-  "author": "The KeystoneJS Development Team",
-  "license": "MIT",
-  "repository": "https://github.com/keystonejs/keystone",
-  "homepage": "https://github.com/keystonejs/keystone",
+  "name": "starter-express-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "docs": "manypkg run @keystone-6/website dev",
-    "coverage": "jest --coverage",
-    "format:file": "prettier --write",
-    "format": "prettier --write \"**/*.{js,json,ts,tsx,md,mdx}\"",
-    "ci:version-packages": "yarn changeset version && cd docs && yarn remove-conditionals",
-    "lint:eslint": "eslint . --ext ts,tsx,js",
-    "lint:prettier": "prettier --check \"**/*.{js,json,ts,tsx,md,mdx}\"",
-    "lint:types": "tsc",
-    "lint": "yarn lint:prettier && yarn lint:eslint && yarn lint:types && yarn lint:filters",
-    "test": "jest",
-    "test:debug": "node --inspect-brk ./node_modules/.bin/jest --runInBand",
-    "test:admin-ui": "jest tests/admin-ui-tests",
-    "benchmark": "yarn workspace @keystone-6/benchmarks-legacy go",
-    "build": "preconstruct build",
-    "prepare": "patch-package && manypkg check && preconstruct dev && node scripts/generate-artifacts-for-projects && cd examples/graphql-ts-gql && yarn ts-gql build",
-    "update": "manypkg upgrade",
-    "update-project-schemas": "node scripts/generate-artifacts-for-projects update-schemas",
-    "generate-filters": "cd prisma-utils && yarn generate",
-    "lint:filters": "cd prisma-utils && yarn verify"
+    "build": "npm ci && PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install --with-deps chromium",
+    "start": "unset PUPPETEER_SKIP_CHROMIUM_DOWNLOAD && node ./node_modules/puppeteer/install.js && node index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyclic-software/starter-express-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cyclic-software/starter-express-api/issues"
+  },
+  "homepage": "https://github.com/cyclic-software/starter-express-api#readme",
   "dependencies": {
-    "@babel/core": "^7.16.0",
-    "@babel/plugin-transform-runtime": "^7.16.0",
-    "@babel/preset-env": "^7.16.0",
-    "@babel/preset-react": "^7.16.0",
-    "@babel/preset-typescript": "^7.16.0",
-    "@changesets/changelog-github": "^0.4.1",
-    "@changesets/cli": "^2.18.0",
-    "@manypkg/cli": "^0.20.0",
-    "@preconstruct/cli": "2.3.0",
-    "@types/jest": "^29.0.0",
-    "@types/node-fetch": "^2.5.12",
-    "@typescript-eslint/eslint-plugin": "^5.7.0",
-    "@typescript-eslint/parser": "^5.7.0",
-    "eslint": "^8.0.0",
-    "eslint-plugin-import": "2.25.3",
-    "eslint-plugin-jest": "^26.0.0",
-    "eslint-plugin-react": "^7.27.0",
-    "eslint-plugin-react-hooks": "^4.3.0",
-    "jest": "^29.0.0",
-    "jest-environment-jsdom": "^29.0.0",
-    "patch-package": "^6.5.0",
-    "prettier": "^2.5.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "typescript": "~4.9.4"
+    "express": "^4.17.1",
+    "puppeteer": "^18.0.5",
+    "puppeteer-extra": "^3.3.4",
+    "puppeteer-extra-plugin-stealth": "^2.11.1",
+    "puppeteer-real-browser": "^1.4.4",
+    "rebrowser-puppeteer": "^23.3.1",
+  "rebrowser-puppeteer-core": "^23.3.1",
+    "@sparticuz/chromium": "^131.0.1",
+    "crawlee": "^3.0.0",
+    "cloudscraper": "^4.6.0",
+  "request": "^2.88.2",
+    "playwright": "^1.55.0"
   },
-  "prettier": {
-    "proseWrap": "preserve",
-    "singleQuote": true,
-    "trailingComma": "es5",
-    "printWidth": 100,
-    "arrowParens": "avoid",
-    "overrides": [
-      {
-        "files": "docs/**",
-        "options": {
-          "embeddedLanguageFormatting": "off"
-        }
-      }
-    ]
-  },
-  "workspaces": {
-    "packages": [
-      "design-system/packages/*",
-      "design-system/website",
-      "docs",
-      "examples/*",
-      "examples/*/*",
-      "packages/*",
-      "tests/admin-ui-tests",
-      "tests/api-tests",
-      "tests/benchmarks",
-      "tests/examples-smoke-tests",
-      "tests/test-projects/*",
-      "tests/sandbox",
-      "prisma-utils",
-      "scripts/*"
-    ]
-  },
-  "preconstruct": {
-    "packages": [
-      "packages/*",
-      "design-system/packages/*",
-      "prisma-utils",
-      "scripts/*"
-    ],
-    "exports": true
-  },
-  "manypkg": {
-    "defaultBranch": "main"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "collectCoverageFrom": [
-      "packages/**/*.{js,ts,tsx}",
-      "!**/*.d.ts",
-      "!packages/**/dist/**",
-      "!packages/core/src/fields/**/test-fixtures.{js,ts}"
-    ]
-  },
-  "resolutions": {
-    "**/@types/node": "^18.11.14"
+  "engines": {
+    "node": ">=20"
   }
 }
