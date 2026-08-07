@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # this module is part of undetected_chromedriver
 
+from packaging.version import Version as LooseVersion
 import io
 import json
 import logging
@@ -11,13 +12,13 @@ import random
 import re
 import shutil
 import string
+import subprocess
 import sys
 import time
 from urllib.request import urlopen
 from urllib.request import urlretrieve
 import zipfile
 from multiprocessing import Lock
-from packaging.version import Version, parse
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +69,10 @@ class Patcher(object):
             # check if version_main_int is less than or equal to e.g 114
             self.is_old_chromedriver = version_main and version_main_int <= 114
         except (ValueError,TypeError):
-            # If the conversion fails, print an error message
-            print("version_main cannot be converted to an integer")
+            # Check not running inside Docker
+            if not os.path.exists("/app/chromedriver"):
+                # If the conversion fails, log an error message
+                logging.info("version_main cannot be converted to an integer")
             # Set self.is_old_chromedriver to False if the conversion fails
             self.is_old_chromedriver = False
 
@@ -281,14 +284,14 @@ class Patcher(object):
         """
         Gets the latest major version available, or the latest major version of self.target_version if set explicitly.
         :return: version string
-        :rtype: Version
+        :rtype: LooseVersion
         """
         # Endpoint for old versions of Chromedriver (114 and below)
         if self.is_old_chromedriver:
             path = f"/latest_release_{self.version_main}"
             path = path.upper()
             logger.debug("getting release number from %s" % path)
-            return parse(urlopen(self.url_repo + path).read().decode())
+            return LooseVersion(urlopen(self.url_repo + path).read().decode())
 
         # Endpoint for new versions of Chromedriver (115+)
         if not self.version_main:
@@ -299,7 +302,7 @@ class Patcher(object):
                 response = conn.read().decode()
 
             last_versions = json.loads(response)
-            return parse(last_versions["channels"]["Stable"]["version"])
+            return LooseVersion(last_versions["channels"]["Stable"]["version"])
 
         # Fetch the latest minor version of the major version provided
         path = "/latest-versions-per-milestone-with-downloads.json"
@@ -308,14 +311,14 @@ class Patcher(object):
             response = conn.read().decode()
 
         major_versions = json.loads(response)
-        return Version(major_versions["milestones"][str(self.version_main)]["version"])
+        return LooseVersion(major_versions["milestones"][str(self.version_main)]["version"])
 
     def parse_exe_version(self):
         with io.open(self.executable_path, "rb") as f:
             for line in iter(lambda: f.readline(), b""):
                 match = re.search(rb"platform_handle\x00content\x00([0-9.]*)", line)
                 if match:
-                    return parse(match[1].decode())
+                    return LooseVersion(match[1].decode())
 
     def fetch_package(self):
         """
@@ -325,11 +328,11 @@ class Patcher(object):
         """
         zip_name = f"chromedriver_{self.platform_name}.zip"
         if self.is_old_chromedriver:
-            download_url = "%s/%s/%s" % (self.url_repo, self.version_full, zip_name)
+            download_url = "%s/%s/%s" % (self.url_repo, str(self.version_full), zip_name)
         else:
             zip_name = zip_name.replace("_", "-", 1)
             download_url = "https://storage.googleapis.com/chrome-for-testing-public/%s/%s/%s"
-            download_url %= (self.version_full, self.platform_name, zip_name)
+            download_url %= (str(self.version_full), self.platform_name, zip_name)
 
         logger.debug("downloading from %s" % download_url)
         return urlretrieve(download_url)[0]
@@ -371,10 +374,31 @@ class Patcher(object):
         """
         exe_name = os.path.basename(exe_name)
         if IS_POSIX:
-            r = os.system("kill -f -9 $(pidof %s)" % exe_name)
+            # Using shell=True for pidof, consider a more robust pid finding method if issues arise.
+            # pgrep can be an alternative: ["pgrep", "-f", exe_name]
+            # Or psutil if adding a dependency is acceptable.
+            command = f"pidof {exe_name}"
+            try:
+                result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
+                pids = result.stdout.strip().split()
+                if pids:
+                    subprocess.run(["kill", "-9"] + pids, check=False) # Changed from -f -9 to -9 as -f is not standard for kill
+                    return True
+                return False # No PIDs found
+            except subprocess.CalledProcessError: # pidof returns 1 if no process found
+                return False # No process found
+            except Exception as e:
+                logger.debug(f"Error killing process on POSIX: {e}")
+                return False
         else:
-            r = os.system("taskkill /f /im %s" % exe_name)
-        return not r
+            try:
+                # TASKKILL /F /IM chromedriver.exe
+                result = subprocess.run(["taskkill", "/f", "/im", exe_name], check=False, capture_output=True)
+                # taskkill returns 0 if process was killed, 128 if not found.
+                return result.returncode == 0
+            except Exception as e:
+                logger.debug(f"Error killing process on Windows: {e}")
+                return False
 
     @staticmethod
     def gen_random_cdc():

@@ -1,7 +1,5 @@
 FROM python:3.11-slim-bookworm AS builder
 
-COPY requirements.txt .
-
 # Build dummy packages to skip installing them and their dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends equivs \
@@ -12,15 +10,12 @@ RUN apt-get update \
     && equivs-control adwaita-icon-theme \
     && printf 'Section: misc\nPriority: optional\nStandards-Version: 3.9.2\nPackage: adwaita-icon-theme\nVersion: 99.0.0\nDescription: Dummy package for adwaita-icon-theme\n' >> adwaita-icon-theme \
     && equivs-build adwaita-icon-theme \
-    && mv adwaita-icon-theme_*.deb /adwaita-icon-theme.deb \
-    && apt-get install -y --no-install-recommends gcc python3-dev \
-    && pip install --no-cache-dir -r requirements.txt
+    && mv adwaita-icon-theme_*.deb /adwaita-icon-theme.deb
 
 FROM python:3.11-slim-bookworm
 
 # Copy dummy packages
 COPY --from=builder /*.deb /
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
 # Install dependencies and create flaresolverr user
 # You can test Chromium running this command inside the container:
@@ -43,13 +38,18 @@ RUN dpkg -i /libgl1-mesa-dri.deb \
     # Create flaresolverr user
     && useradd --home-dir /app --shell /bin/sh flaresolverr \
     && mv /usr/bin/chromedriver chromedriver \
-    && chown -R flaresolverr:flaresolverr .
+    && chown -R flaresolverr:flaresolverr . \
+    # Create config dir
+    && mkdir /config \
+    && chown flaresolverr:flaresolverr /config
+
+VOLUME /config
 
 # Install Python dependencies
-# COPY requirements.txt .
-# RUN pip install -r requirements.txt \
-#     # Remove temporary files
-#     && rm -rf /root/.cache
+COPY requirements.txt .
+RUN pip install -r requirements.txt \
+    # Remove temporary files
+    && rm -rf /root/.cache
 
 USER flaresolverr
 
@@ -67,17 +67,17 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/usr/local/bin/python", "-u", "/app/flaresolverr.py"]
 
 # Local build
-# docker build -t ngosang/flaresolverr:3.4.0 .
-# docker run -p 8191:8191 ngosang/flaresolverr:3.4.0
+# docker build -t ngosang/flaresolverr:3.5.0 .
+# docker run -p 8191:8191 ngosang/flaresolverr:3.5.0
 
 # Multi-arch build
 # docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 # docker buildx create --use
-# docker buildx build -t ngosang/flaresolverr:3.4.0 --platform linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8 .
+# docker buildx build -t ngosang/flaresolverr:3.5.0 --platform linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8 .
 #   add --push to publish in DockerHub
 
 # Test multi-arch build
 # docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 # docker buildx create --use
-# docker buildx build -t ngosang/flaresolverr:3.4.0 --platform linux/arm/v7 --load .
-# docker run -p 8191:8191 --platform linux/arm/v7 ngosang/flaresolverr:3.4.0
+# docker buildx build -t ngosang/flaresolverr:3.5.0 --platform linux/arm/v7 --load .
+# docker run -p 8191:8191 --platform linux/arm/v7 ngosang/flaresolverr:3.5.0
