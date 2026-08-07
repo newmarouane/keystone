@@ -1,9 +1,9 @@
 import express from 'express';
-/*const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer");
 
 var cloudscraper = require('cloudscraper');
   const { promisify } = require('util');
-const { exec } = require('child_process');*/
+const { exec } = require('child_process');
 import { chromium } from "playwright";
 const app = express()
 
@@ -78,7 +78,7 @@ const result = await cloudscraper.get('https://medias24.com/content/api?method=g
 
 	 
     try {
-	/*	console.log(process.env.CHROME_PATH);
+		console.log(process.env.CHROME_PATH);
         browser = await puppeteer.launch({
            // executablePath: "/usr/bin/google-chrome",
 		    headless: true,
@@ -121,7 +121,7 @@ const result = await cloudscraper.get('https://medias24.com/content/api?method=g
             };
         });
 
-        console.log(result);*/
+        console.log(result);
 
         res.json(result);
     } catch (err) {
