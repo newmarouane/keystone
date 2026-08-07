@@ -1,346 +1,187 @@
-# FlareSolverr
+> [!WARNING]
+> This repo will no longer receive updates. Thank you to everyone who supported it.
 
-[![Latest release](https://img.shields.io/github/v/release/FlareSolverr/FlareSolverr)](https://github.com/FlareSolverr/FlareSolverr/releases)
-[![Docker Pulls](https://img.shields.io/docker/pulls/flaresolverr/flaresolverr)](https://hub.docker.com/r/flaresolverr/flaresolverr/)
-[![GitHub issues](https://img.shields.io/github/issues/FlareSolverr/FlareSolverr)](https://github.com/FlareSolverr/FlareSolverr/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/FlareSolverr/FlareSolverr)](https://github.com/FlareSolverr/FlareSolverr/pulls)
-[![Donate PayPal](https://img.shields.io/badge/Donate-PayPal-yellow.svg)](https://www.paypal.com/paypalme/diegoheras0xff)
-[![Donate Bitcoin](https://img.shields.io/badge/Donate-Bitcoin-f7931a.svg)](https://www.blockchain.com/btc/address/13Hcv77AdnFWEUZ9qUpoPBttQsUT7q9TTh)
-[![Donate Ethereum](https://img.shields.io/badge/Donate-Ethereum-8c8c8c.svg)](https://www.blockchain.com/eth/address/0x0D1549BbB00926BF3D92c1A8A58695e982f1BE2E)
+# CF Clearance Scraper
 
-FlareSolverr is a proxy server to bypass Cloudflare and DDoS-GUARD protection.
+This library was created for testing and training purposes to retrieve the page source of websites, create Cloudflare Turnstile tokens and create Cloudflare WAF sessions.
 
-## How it works
+Cloudflare protection not only checks cookies in the request. It also checks variables in the header. For this reason, it is recommended to use it with the sample code in this readme file.
 
-FlareSolverr starts a proxy server, and it waits for user requests in an idle state using few resources.
-When some request arrives, it uses [nodriver](https://github.com/ultrafunkamsterdam/nodriver) or [Selenium](https://www.selenium.dev) with the [undetected-chromedriver](https://github.com/ultrafunkamsterdam/undetected-chromedriver) to create a web browser (Chrome). It opens the URL with user parameters and waits until the Cloudflare challenge is solved (or timeout). The HTML code and the cookies are sent back to the user, and those cookies can be used to bypass Cloudflare using other HTTP clients.
+Cookies with cf in the name belong to Cloudflare. You can find out what these cookies do and how long they are valid by **[Clicking Here](https://developers.cloudflare.com/fundamentals/reference/policies-compliances/cloudflare-cookies/)**.
 
-**NOTE**: Web browsers consume a lot of memory. If you are running FlareSolverr on a machine with few RAM, do not make
-many requests at once. With each request a new browser is launched.
+## Sponsor
 
-It is also possible to use a permanent session. However, if you use sessions, you should make sure to close them as
-soon as you are done using them.
-
-## Solving methods
-
-Flaresolverr provides 2 solving methods, **nodriver** and **undetected-chromedriver**.
-To select one of them, the `DRIVER` environment variable is available and should be used as follows:
-
-- nodriver:
-  - `DRIVER=nodriver`
-- undetected-chromedriver:
-  - `DRIVER=undetected-chromedriver`
-
-**nodriver** is the **default** solving method.
+[![ScrapeDo](src/data/sdo.gif)](https://scrape.do/?utm_source=github&utm_medium=repo_ccs)
 
 ## Installation
 
-### Docker
+Installation with Docker is recommended.
 
-It is recommended to install using a Docker container because the project depends on an external browser that is
-already included within the image.
+**Docker**
 
-Docker images are available in:
-
-* GitHub Registry => https://github.com/orgs/FlareSolverr/packages/container/package/flaresolverr
-* DockerHub => https://hub.docker.com/r/flaresolverr/flaresolverr
-
-Supported architectures are:
-
-
-| Architecture | Tag          |
-| -------------- | -------------- |
-| x86          | linux/386    |
-| x86-64       | linux/amd64  |
-| ARM32        | linux/arm/v7 |
-| ARM64        | linux/arm64  |
-
-We provide a `docker-compose.yml` configuration file. Clone this repository and execute
-`docker-compose up -d` _(Compose V1)_ or `docker compose up -d` _(Compose V2)_ to start
-the container.
-
-If you prefer the `docker cli` execute the following command.
+Please make sure you have installed the latest image. If you get an error, try downloading the latest version by going to Docker Hub.
 
 ```bash
-docker run -d \
-  --name=flaresolverr \
-  -p 8191:8191 \
-  -e LOG_LEVEL=info \
-  --restart unless-stopped \
-  ghcr.io/flaresolverr/flaresolverr:latest
+sudo docker rmi zfcsoftware/cf-clearance-scraper:latest --force
 ```
-
-If your host OS is Debian, make sure `libseccomp2` version is 2.5.x. You can check the version with `sudo apt-cache policy libseccomp2`
-and update the package with `sudo apt install libseccomp2=2.5.1-1~bpo10+1` or `sudo apt install libseccomp2=2.5.1-1+deb11u1`.
-Remember to restart the Docker daemon and the container after the update.
-
-### Precompiled binaries
-
-> **Warning**
-> Precompiled binaries are only available for x64 architecture. For other architectures see Docker images.
-
-This is the recommended way for Windows users.
-
-* Download the [FlareSolverr executable](https://github.com/FlareSolverr/FlareSolverr/releases) from the release's page. It is available for Windows x64 and Linux x64.
-* Execute FlareSolverr binary. In the environment variables section you can find how to change the configuration.
-
-### From source code
-
-> **Warning**
-> Installing from source code only works for x64 architecture. For other architectures see Docker images.
-
-* Install [Python 3.12](https://www.python.org/downloads/).
-* Install [Chrome](https://www.google.com/intl/en_us/chrome/) (all OS) or [Chromium](https://www.chromium.org/getting-involved/download-chromium/) (just Linux, it doesn't work in Windows) web browser.
-* (Only in Linux) Install [Xvfb](https://en.wikipedia.org/wiki/Xvfb) package.
-* (Only in macOS) Install [XQuartz](https://www.xquartz.org/) package.
-* Clone this repository and open a shell in that path.
-* Run `pip install -r requirements.txt` command to install FlareSolverr dependencies.
-* Run `python src/flaresolverr.py` command to start FlareSolverr.
-
-### From source code (FreeBSD/TrueNAS CORE)
-
-* Run `pkg install chromium python39 py39-pip xorg-vfbserver` command to install the required dependencies.
-* Clone this repository and open a shell in that path.
-* Run `python3.9 -m pip install -r requirements.txt` command to install FlareSolverr dependencies.
-* Run `python3.9 src/flaresolverr.py` command to start FlareSolverr.
-
-### Systemd service
-
-We provide an example Systemd unit file `flaresolverr.service` as reference. You have to modify the file to suit your needs: paths, user and environment variables.
-
-## Usage
-
-Example Bash request:
 
 ```bash
-curl -L -X POST 'http://localhost:8191/v1' \
--H 'Content-Type: application/json' \
---data-raw '{
-  "cmd": "request.get",
-  "url": "http://www.google.com/",
-  "maxTimeout": 60000
-}'
+docker run -d -p 3000:3000 \
+-e PORT=3000 \
+-e browserLimit=20 \
+-e timeOut=60000 \
+zfcsoftware/cf-clearance-scraper:latest
 ```
 
-Example Python request:
+**Github**
 
-```py
-import requests
-
-url = "http://localhost:8191/v1"
-headers = {"Content-Type": "application/json"}
-data = {
-    "cmd": "request.get",
-    "url": "http://www.google.com/",
-    "maxTimeout": 60000
-}
-response = requests.post(url, headers=headers, json=data)
-print(response.text)
+```bash
+git clone https://github.com/zfcsoftware/cf-clearance-scraper
+cd cf-clearance-scraper
+npm install
+npm run start
 ```
 
-Example PowerShell request:
+## Create Cloudflare WAF Session
 
-```ps1
-$body = @{
-    cmd = "request.get"
-    url = "http://www.google.com/"
-    maxTimeout = 60000
-} | ConvertTo-Json
+By creating a session as in the example, you can send multiple requests to the same site without being blocked. Since sites may have TLS protection, it is recommended to send requests with the library in the example.
 
-irm -UseBasicParsing 'http://localhost:8191/v1' -Headers @{"Content-Type"="application/json"} -Method Post -Body $body
-```
-
-### Commands
-
-#### + `sessions.create`
-
-This will launch a new browser instance which will retain cookies until you destroy it with `sessions.destroy`.
-This comes in handy, so you don't have to keep solving challenges over and over and you won't need to keep sending
-cookies for the browser to use.
-
-This also speeds up the requests since it won't have to launch a new browser instance for every request.
-
-
-| Parameter | Notes                                                                                                                                                                                                                                                                                                            |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| session   | Optional. The session ID that you want to be assigned to the instance. If isn't set a random UUID will be assigned.                                                                                                                                                                                              |
-| proxy     | Optional, default disabled. Eg:`"proxy": {"url": "http://127.0.0.1:8888"}`. You must include the proxy schema in the URL: `http://`, `socks4://` or `socks5://`. Authorization (username/password) is supported. Eg: `"proxy": {"url": "http://127.0.0.1:8888", "username": "testuser", "password": "testpass"}` |
-
-#### + `sessions.list`
-
-Returns a list of all the active sessions. More for debugging if you are curious to see how many sessions are running.
-You should always make sure to properly close each session when you are done using them as too many may slow your
-computer down.
-
-Example response:
-
-```json
-{
-  "sessions": [
-    "session_id_1",
-    "session_id_2",
-    "session_id_3..."
-  ]
-}
-```
-
-#### + `sessions.destroy`
-
-This will properly shutdown a browser instance and remove all files associated with it to free up resources for a new
-session. When you no longer need to use a session you should make sure to close it.
-
-
-| Parameter | Notes                                         |
-| ----------- | ----------------------------------------------- |
-| session   | The session ID that you want to be destroyed. |
-
-#### + `request.get`
-
-
-| Parameter           | Notes                                                                                                                                                                                                                                                                                                                                       |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| url                 | Mandatory                                                                                                                                                                                                                                                                                                                                   |
-| session             | Optional. Will send the request from and existing browser instance. If one is not sent it will create a temporary instance that will be destroyed immediately after the request is completed.                                                                                                                                               |
-| session_ttl_minutes | Optional. FlareSolverr will automatically rotate expired sessions based on the TTL provided in minutes.                                                                                                                                                                                                                                     |
-| maxTimeout          | Optional, default value 60000. Max timeout to solve the challenge in milliseconds.                                                                                                                                                                                                                                                          |
-| cookies             | Optional. Will be used by the headless browser. Eg:`"cookies": [{"name": "cookie1", "value": "value1"}, {"name": "cookie2", "value": "value2"}]`.                                                                                                                                                                                           |
-| returnOnlyCookies   | Optional, default false. Only returns the cookies. Response data, headers and other parts of the response are removed.                                                                                                                                                                                                                      |
-| proxy               | Optional, default disabled. Eg:`"proxy": {"url": "http://127.0.0.1:8888"}`. You must include the proxy schema in the URL: `http://`, `socks4://` or `socks5://`. Authorization (username/password) is not supported. (When the `session` parameter is set, the proxy is ignored; a session specific proxy can be set in `sessions.create`.) |
-
-> **Warning**
-> If you want to use Cloudflare clearance cookie in your scripts, make sure you use the FlareSolverr User-Agent too. If they don't match you will see the challenge.
-
-Example response from running the `curl` above:
-
-```json
-{
-    "solution": {
-        "url": "https://www.google.com/?gws_rd=ssl",
-        "status": 200,
-        "headers": {
-            "status": "200",
-            "date": "Thu, 16 Jul 2020 04:15:49 GMT",
-            "expires": "-1",
-            "cache-control": "private, max-age=0",
-            "content-type": "text/html; charset=UTF-8",
-            "strict-transport-security": "max-age=31536000",
-            "p3p": "CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\"",
-            "content-encoding": "br",
-            "server": "gws",
-            "content-length": "61587",
-            "x-xss-protection": "0",
-            "x-frame-options": "SAMEORIGIN",
-            "set-cookie": "1P_JAR=2020-07-16-04; expires=Sat..."
+```js
+const initCycleTLS = require('cycletls');
+async function test() {
+    const session = await fetch('http://localhost:3000/cf-clearance-scraper', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
         },
-        "response":"<!DOCTYPE html>...",
-        "cookies": [
-            {
-                "name": "NID",
-                "value": "204=QE3Ocq15XalczqjuDy52HeseG3zAZuJzID3R57...",
-                "domain": ".google.com",
-                "path": "/",
-                "expires": 1610684149.307722,
-                "size": 178,
-                "httpOnly": true,
-                "secure": true,
-                "session": false,
-                "sameSite": "None"
-            },
-            {
-                "name": "1P_JAR",
-                "value": "2020-07-16-04",
-                "domain": ".google.com",
-                "path": "/",
-                "expires": 1597464949.307626,
-                "size": 19,
-                "httpOnly": false,
-                "secure": true,
-                "session": false,
-                "sameSite": "None"
-            }
-        ],
-        "userAgent": "Windows NT 10.0; Win64; x64) AppleWebKit/5..."
-    },
-    "status": "ok",
-    "message": "",
-    "startTimestamp": 1594872947467,
-    "endTimestamp": 1594872949617,
-    "version": "1.0.0"
+        body: JSON.stringify({
+            url: 'https://nopecha.com/demo/cloudflare',
+            mode: "waf-session",
+            // proxy:{
+            //     host: '127.0.0.1',
+            //     port: 3000,
+            //     username: 'username',
+            //     password: 'password'
+            // }
+        })
+    }).then(res => res.json()).catch(err => { console.error(err); return null });
+
+    if (!session || session.code != 200) return console.error(session);
+
+    const cycleTLS = await initCycleTLS();
+    const response = await cycleTLS('https://nopecha.com/demo/cloudflare', {
+        body: '',
+        ja3: '772,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,23-27-65037-43-51-45-16-11-13-17513-5-18-65281-0-10-35,25497-29-23-24,0', // https://scrapfly.io/web-scraping-tools/ja3-fingerprint
+        userAgent: session.headers["user-agent"],
+        // proxy: 'http://username:password@hostname.com:443',
+        headers: {
+            ...session.headers,
+            cookie: session.cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ')
+        }
+    }, 'get');
+
+    console.log(response.status);
+    cycleTLS.exit().catch(err => { });
 }
+test()
 ```
 
-### + `request.post`
+## Create Turnstile Token with Little Resource Consumption
 
-This is the same as `request.get` but it takes one more param:
+This endpoint allows you to generate tokens for a Cloudflare Turnstile Captcha. It blocks the request that fetches the page resource and instead makes the page resource a simple Turnstile render page. This allows you to generate tokens without having to load any additional css or js files. 
 
+However, in this method, the siteKey variable must be sent to Turnstile along with the site to create the token. If this does not work, you can examine the token generation system by loading the full page resource described in the next section.
 
-| Parameter | Notes                                                                   |
-| ----------- | ------------------------------------------------------------------------- |
-| postData  | Must be a string with`application/x-www-form-urlencoded`. Eg: `a=b&c=d` |
-
-## Environment variables
-
-
-| Name               | Default                | Notes                                                                                                                                                        |
-| -------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| LOG_LEVEL          | info                   | Verbosity of the logging. Use`LOG_LEVEL=debug` for more information.                                                                                         |
-| LOG_HTML           | false                  | Only for debugging. If`true` all HTML that passes through the proxy will be logged to the console in `debug` level.                                          |
-| CAPTCHA_SOLVER     | none                   | Captcha solving method. It is used when a captcha is encountered. See the Captcha Solvers section.                                                           |
-| TZ                 | UTC                    | Timezone used in the logs and the web browser. Example:`TZ=Europe/London`.                                                                                   |
-| LANG               | none                   | Language used in the web browser. Example:`LANG=en_GB`.                                                                                                      |
-| HEADLESS           | true                   | Only for debugging. To run the web browser in headless mode or visible.                                                                                      |
-| BROWSER_TIMEOUT    | 40000                  | If you are experiencing errors/timeouts because your system is slow, you can try to increase this value. Remember to increase the`maxTimeout` parameter too. |
-| TEST_URL           | https://www.google.com | FlareSolverr makes a request on start to make sure the web browser is working. You can change that URL if it is blocked in your country.                     |
-| PORT               | 8191                   | Listening port. You don't need to change this if you are running on Docker.                                                                                  |
-| HOST               | 0.0.0.0                | Listening interface. You don't need to change this if you are running on Docker.                                                                             |
-| PROMETHEUS_ENABLED | false                  | Enable Prometheus exporter. See the Prometheus section below.                                                                                                |
-| PROMETHEUS_PORT    | 8192                   | Listening port for Prometheus exporter. See the Prometheus section below.                                                                                    |
-
-Environment variables are set differently depending on the operating system. Some examples:
-
-* Docker: Take a look at the Docker section in this document. Environment variables can be set in the `docker-compose.yml` file or in the Docker CLI command.
-* Linux: Run `export LOG_LEVEL=debug` and then run `flaresolverr` in the same shell.
-* Windows: Open `cmd.exe`, run `set LOG_LEVEL=debug` and then run `flaresolverr.exe` in the same shell.
-
-## Prometheus exporter
-
-The Prometheus exporter for FlareSolverr is disabled by default. It can be enabled with the environment variable `PROMETHEUS_ENABLED`. If you are using Docker make sure you expose the `PROMETHEUS_PORT`.
-
-Example metrics:
-
-```shell
-# HELP flaresolverr_request_total Total requests with result
-# TYPE flaresolverr_request_total counter
-flaresolverr_request_total{domain="nowsecure.nl",result="solved"} 1.0
-# HELP flaresolverr_request_created Total requests with result
-# TYPE flaresolverr_request_created gauge
-flaresolverr_request_created{domain="nowsecure.nl",result="solved"} 1.690141657157109e+09
-# HELP flaresolverr_request_duration Request duration in seconds
-# TYPE flaresolverr_request_duration histogram
-flaresolverr_request_duration_bucket{domain="nowsecure.nl",le="0.0"} 0.0
-flaresolverr_request_duration_bucket{domain="nowsecure.nl",le="10.0"} 1.0
-flaresolverr_request_duration_bucket{domain="nowsecure.nl",le="25.0"} 1.0
-flaresolverr_request_duration_bucket{domain="nowsecure.nl",le="50.0"} 1.0
-flaresolverr_request_duration_bucket{domain="nowsecure.nl",le="+Inf"} 1.0
-flaresolverr_request_duration_count{domain="nowsecure.nl"} 1.0
-flaresolverr_request_duration_sum{domain="nowsecure.nl"} 5.858
-# HELP flaresolverr_request_duration_created Request duration in seconds
-# TYPE flaresolverr_request_duration_created gauge
-flaresolverr_request_duration_created{domain="nowsecure.nl"} 1.6901416571570296e+09
+```js
+fetch('http://localhost:3000/cf-clearance-scraper', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        url: 'https://turnstile.zeroclover.io/',
+        siteKey: "0x4AAAAAAAEwzhD6pyKkgXC0",
+        mode: "turnstile-min",
+        // proxy:{
+        //     host: '127.0.0.1',
+        //     port: 3000,
+        //     username: 'username',
+        //     password: 'password'
+        // }
+    })
+})
+    .then(res => res.json())
+    .then(console.log)
+    .catch(console.log);
 ```
 
-## Captcha Solvers
+## Creating Turnstile Token with Full Page Load
 
-> **Warning**
-> At this time none of the captcha solvers work. You can check the status in the open issues. Any help is welcome.
+This example request goes to the page at the given url address with a real browser, resolves the Turnstile and returns you the token.
 
-Sometimes CloudFlare not only gives mathematical computations and browser tests, sometimes they also require the user to
-solve a captcha.
-If this is the case, FlareSolverr will return the error `Captcha detected but no automatic solver is configured.`
+```js
+fetch('http://localhost:3000/cf-clearance-scraper', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        url: 'https://turnstile.zeroclover.io/',
+        mode: "turnstile-max",
+        // proxy:{
+        //     host: '127.0.0.1',
+        //     port: 3000,
+        //     username: 'username',
+        //     password: 'password'
+        // }
+    })
+})
+    .then(res => res.json())
+    .then(console.log)
+    .catch(console.log);
+```
 
-FlareSolverr can be customized to solve the CAPTCHA automatically by setting the environment variable `CAPTCHA_SOLVER`
-to the file name of one of the adapters inside the [/captcha](src/captcha) directory.
+## Getting Page Source from a Site Protected with Cloudflare WAF
 
-## Related projects
+With this request you can scrape the page source of a website protected with CF WAF.
 
-* C# implementation => https://github.com/FlareSolverr/FlareSolverrSharp
+```js
+fetch('http://localhost:3000/cf-clearance-scraper', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        url: 'https://nopecha.com/demo/cloudflare',
+        mode: "source"
+        // proxy:{
+        //     host: '127.0.0.1',
+        //     port: 3000,
+        //     username: 'username',
+        //     password: 'password'
+        // }
+    })
+})
+    .then(res => res.json())
+    .then(console.log)
+    .catch(console.log);
+```
+
+## Quick Questions and Answers
+
+### Does It Open A New Browser On Every Request?
+No, a new context is started with each request and closed when the job is finished. Processes are executed with isolated contexts through a single browser.
+
+### How Do I Limit the Browser Context to Open?
+You can do this by changing the process.env.browserLimit value. The default is 20
+
+### How Do I Add Authentication to Api?
+You can add authorisation by changing the process.env.authToken variable. If this variable is added, it returns 401 if the authToken variable in the request body is not equal to the token you specify.
+
+### How Do I Set The Timeout Time?
+You can give the variable process.env.timeOut a value in milliseconds. The default is 60000.
+
+## Disclaimer of Liability
+This repository was created purely for testing and training purposes. The user is responsible for any prohibited liability that may arise from its use.
+The library is not intended to harm any site or company. The user is responsible for any damage that may arise. 
+Users of this repository are deemed to have accepted this disclaimer. 
