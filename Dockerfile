@@ -2,9 +2,9 @@ FROM mcr.microsoft.com/playwright:v1.55.0-noble
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json ./
 
-RUN npm ci
+RUN npm install
 
 COPY . .
 
