@@ -29,6 +29,23 @@ app.get("/", async (req, res) => {
   try {
     const browser = await getBrowser();
 
+    const page = await browser.newPage();
+
+await page.goto("https://medias24.com/", {
+  waitUntil: "domcontentloaded",
+  timeout: 30000
+});
+
+console.log("Homepage:", await page.title());
+console.log("URL:", page.url());
+
+await page.waitForTimeout(10000);
+
+console.log(
+  "Cookies:",
+  await page.context().cookies()
+);
+    
     page = await browser.newPage({
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
