@@ -1,9 +1,9 @@
 import express from 'express';
-const puppeteer = require("puppeteer");
+import puppeteer from "puppeteer";
 
-var cloudscraper = require('cloudscraper');
-  const { promisify } = require('util');
-const { exec } = require('child_process');
+import cloudscraper from 'cloudscraper';
+  import { promisify } from 'util';
+import { exec } from 'child_process';
 import { chromium } from "playwright";
 const app = express()
 
