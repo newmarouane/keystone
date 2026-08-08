@@ -1,3 +1,0 @@
-
-[tool.vercel]
-entrypoint = "src.flaresolverr:app"
