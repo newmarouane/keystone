@@ -12,7 +12,7 @@ from bottle_plugins import prometheus_plugin
 from dtos import V1RequestBase
 import flaresolverr_service
 import utils
-
+import requests
 env_proxy_url = os.environ.get('PROXY_URL', None)
 env_proxy_username = os.environ.get('PROXY_USERNAME', None)
 env_proxy_password = os.environ.get('PROXY_PASSWORD', None)
