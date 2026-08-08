@@ -43,7 +43,7 @@ def index():
     """
     Show welcome message
     """
-    url = 'https://0.0.0.0:8191/v1'
+    url = 'http://0.0.0.0:8191/v1'
     myobj = { 'cmd': 'request.get', 'url': 'https://medias24.com/content/api?method=getBidAsk&ISIN=MA0000012528&format=json', 'maxTimeout': 200000 }
 
     x = requests.post(url, json = myobj)
