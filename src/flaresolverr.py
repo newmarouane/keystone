@@ -35,16 +35,22 @@ def index():
     """
     Show welcome message
     """
-    res = flaresolverr_service.index_endpoint()
+    res = flaresolverr_service.index_endpoint()   
+    return utils.object_to_dict(res)
+
+@app.route('/test')
+def index():
+    """
+    Show welcome message
+    """
     url = 'https://0.0.0.0:8191/v1'
     myobj = { 'cmd': 'request.get', 'url': 'https://medias24.com/content/api?method=getBidAsk&ISIN=MA0000012528&format=json', 'maxTimeout': 200000 }
 
     x = requests.post(url, json = myobj)
 
-    print(x.text)
+    logging.info(x.text)
     return utils.object_to_dict(x.text)
-
-
+    
 @app.route('/health')
 def health():
     """
