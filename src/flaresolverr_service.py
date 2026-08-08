@@ -236,7 +236,7 @@ def _resolve_challenge(req: V1RequestBase, method: str) -> ChallengeResolutionT:
 
             driver = session.driver
         else:
-            driver = utils.get_webdriver_uc(req.proxy)
+            driver = utils.get_webdriver(req.proxy)
             logging.debug('New instance of webdriver has been created to perform the request')
         return func_timeout(timeout, _evil_logic, (req, driver, method))
     except FunctionTimedOut:
