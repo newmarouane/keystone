@@ -220,7 +220,7 @@ def _cmd_sessions_destroy(req: V1RequestBase) -> V1ResponseBase:
 
 
 def _resolve_challenge(req: V1RequestBase, method: str) -> ChallengeResolutionT:
-    timeout = req.maxTimeout / 1000
+    timeout = in(req.maxTimeout) / 1000
     driver = None
     try:
         if req.session:
