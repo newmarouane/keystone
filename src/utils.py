@@ -131,55 +131,61 @@ def create_proxy_extension(proxy: dict) -> str:
 
 def get_webdriver(proxy: dict = None) -> WebDriver:
     global PATCHED_DRIVER_PATH, USER_AGENT
-    logging.debug('Launching web browser...')
+
+    logging.debug("Launching web browser with undetected-chromedriver...")
 
     # undetected_chromedriver
     options = uc.ChromeOptions()
-    options.add_argument('--no-sandbox')
-    options.add_argument('--window-size=1920,1080')
-    options.add_argument('--disable-search-engine-choice-screen')
+    options.add_argument("--no-sandbox")
+    options.add_argument("--window-size=1920,1080")
     # todo: this param shows a warning in chrome head-full
-    options.add_argument('--disable-setuid-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("--disable-setuid-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     # this option removes the zygote sandbox (it seems that the resolution is a bit faster)
-    options.add_argument('--no-zygote')
+    options.add_argument("--no-zygote")
     # attempt to fix Docker ARM32 build
-    IS_ARMARCH = platform.machine().startswith(('arm', 'aarch'))
-    if IS_ARMARCH:
-        options.add_argument('--disable-gpu-sandbox')
-    options.add_argument('--ignore-certificate-errors')
-    options.add_argument('--ignore-ssl-errors')
-    # disable breaking popup
-    options.add_argument("--disable-features=LocalNetworkAccessChecks")
+    options.add_argument("--disable-gpu-sandbox")
+    options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--ignore-ssl-errors")
+    # fix GL errors in ASUSTOR NAS
+    # https://github.com/FlareSolverr/FlareSolverr/issues/782
+    # https://github.com/microsoft/vscode/issues/127800#issuecomment-873342069
+    # https://peter.sh/experiments/chromium-command-line-switches/#use-gl
+    options.add_argument("--use-gl=swiftshader")
 
-    language = os.environ.get('LANG', None)
+    language = os.environ.get("LANG", None)
     if language is not None:
-        options.add_argument('--accept-lang=%s' % language)
+        options.add_argument("--accept-lang=%s" % language)
 
     # Fix for Chrome 117 | https://github.com/FlareSolverr/FlareSolverr/issues/910
     if USER_AGENT is not None:
-        options.add_argument('--user-agent=%s' % USER_AGENT)
+        options.add_argument("--user-agent=%s" % USER_AGENT)
 
     proxy_extension_dir = None
-    if proxy and all(key in proxy for key in ['url', 'username', 'password']):
+    if proxy and all(key in proxy for key in ["url", "username", "password"]):
         proxy_extension_dir = create_proxy_extension(proxy)
-        options.add_argument("--disable-features=DisableLoadExtensionCommandLineSwitch")
-        options.add_argument("--load-extension=%s" % os.path.abspath(proxy_extension_dir))
-    elif proxy and 'url' in proxy:
-        proxy_url = proxy['url']
+        options.add_argument(
+            "--load-extension=%s" % os.path.abspath(proxy_extension_dir)
+        )
+    elif proxy and "url" in proxy:
+        proxy_url = proxy["url"]
         logging.debug("Using webdriver proxy: %s", proxy_url)
-        options.add_argument('--proxy-server=%s' % proxy_url)
+        options.add_argument("--proxy-server=%s" % proxy_url)
 
     # note: headless mode is detected (headless = True)
     # we launch the browser in head-full mode with the window hidden
     windows_headless = False
     if get_config_headless():
-        if os.name == 'nt':
+        if PLATFORM_VERSION == "nt":
             windows_headless = True
         else:
             start_xvfb_display()
     # For normal headless mode:
     # options.add_argument('--headless')
+
+    options.add_argument("--auto-open-devtools-for-tabs")
+    options.add_argument("--disable-popup-blocking")
 
     # if we are inside the Docker container, we avoid downloading the driver
     driver_exe_path = None
@@ -198,17 +204,22 @@ def get_webdriver(proxy: dict = None) -> WebDriver:
     # downloads and patches the chromedriver
     # if we don't set driver_executable_path it downloads, patches, and deletes the driver each time
     try:
-        driver = uc.Chrome(options=options, browser_executable_path=browser_executable_path,
-                           driver_executable_path=driver_exe_path, version_main=version_main,
-                           windows_headless=windows_headless, headless=get_config_headless())
+        driver = uc.Chrome(
+            options=options,
+            browser_executable_path=browser_executable_path,
+            driver_executable_path=driver_exe_path,
+            version_main=version_main,
+            windows_headless=windows_headless,
+            headless=get_config_headless(),
+        )
     except Exception as e:
         logging.error("Error starting Chrome: %s" % e)
-        # No point in continuing if we cannot retrieve the driver
-        raise e
 
     # save the patched driver to avoid re-downloads
     if driver_exe_path is None:
-        PATCHED_DRIVER_PATH = os.path.join(driver.patcher.data_path, driver.patcher.exe_name)
+        PATCHED_DRIVER_PATH = os.path.join(
+            driver.patcher.data_path, driver.patcher.exe_name
+        )
         if PATCHED_DRIVER_PATH != driver.patcher.executable_path:
             shutil.copy(driver.patcher.executable_path, PATCHED_DRIVER_PATH)
 
@@ -225,6 +236,7 @@ def get_webdriver(proxy: dict = None) -> WebDriver:
     # driver = webdriver.Chrome(options=options)
 
     return driver
+
 
 
 def get_chrome_exe_path() -> str:
