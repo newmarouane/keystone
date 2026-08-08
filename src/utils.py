@@ -151,9 +151,9 @@ def get_webdriver(proxy: dict = None) -> WebDriver:
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-extensions")
-    options.add_argument("--disable-background-networking")
-    options.add_argument("--disable-background-timer-throttling")
-    options.add_argument("--disable-renderer-backgrounding")
+    #options.add_argument("--disable-background-networking")
+    #options.add_argument("--disable-background-timer-throttling")
+    #options.add_argument("--disable-renderer-backgrounding")
     options.add_argument("--disable-sync")
     options.add_argument("--disable-translate")
     options.add_argument("--no-first-run")
@@ -163,6 +163,7 @@ def get_webdriver(proxy: dict = None) -> WebDriver:
     # https://github.com/microsoft/vscode/issues/127800#issuecomment-873342069
     # https://peter.sh/experiments/chromium-command-line-switches/#use-gl
     options.add_argument("--use-gl=swiftshader")
+
 
     language = os.environ.get("LANG", None)
     if language is not None:
@@ -194,7 +195,7 @@ def get_webdriver(proxy: dict = None) -> WebDriver:
     # For normal headless mode:
     # options.add_argument('--headless')
 
-    options.add_argument("--auto-open-devtools-for-tabs")
+    #options.add_argument("--auto-open-devtools-for-tabs")
     options.add_argument("--disable-popup-blocking")
 
     # if we are inside the Docker container, we avoid downloading the driver
