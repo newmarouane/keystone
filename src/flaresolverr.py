@@ -132,7 +132,7 @@ if __name__ == "__main__":
     utils.get_current_platform()
 
     # test browser installation
-    flaresolverr_service.test_browser_installation()
+    #flaresolverr_service.test_browser_installation()
 
     # start bootle plugins
     # plugin order is important
