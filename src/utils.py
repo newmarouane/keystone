@@ -154,6 +154,10 @@ def get_webdriver(proxy: dict = None) -> WebDriver:
     options.add_argument("--disable-background-networking")
     options.add_argument("--disable-background-timer-throttling")
     options.add_argument("--disable-renderer-backgrounding")
+    options.add_argument("--disable-sync")
+    options.add_argument("--disable-translate")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
     # fix GL errors in ASUSTOR NAS
     # https://github.com/FlareSolverr/FlareSolverr/issues/782
     # https://github.com/microsoft/vscode/issues/127800#issuecomment-873342069
