@@ -1,130 +1,253 @@
+```python
 import asyncio
 import json
-async def chatgpt_handle_response(page,context,question) -> str:
+
+
+CHATGPT_URL = "https://chatgpt.com/"
+
+
+async def ensure_chatgpt_page(page):
+    """
+    Navigate to ChatGPT if necessary and verify that the normal
+    ChatGPT interface is available.
+    """
+
+    if not page.url.startswith(CHATGPT_URL):
+        await page.goto(
+            CHATGPT_URL,
+            wait_until="domcontentloaded",
+        )
+
+    print(f"Current ChatGPT URL: {page.url}")
+
+    # Detect Cloudflare challenge before waiting for the textarea.
+    if "__cf_chl" in page.url:
+        raise RuntimeError(
+            f"Cloudflare challenge detected: {page.url}"
+        )
+
+    editor = page.locator("#prompt-textarea")
+
     try:
-        if(page.url != "https://chatgpt.com/"):
-            await page.goto(
-                "https://chatgpt.com/",
-                wait_until="domcontentloaded"
-            )
-        print(page.url)
-        # await page.screenshot(path="debug.png")
-        editor = page.locator("#prompt-textarea")
-        await editor.wait_for(state="visible")
+        await editor.wait_for(
+            state="visible",
+            timeout=30000,
+        )
+    except Exception as e:
+        print(f"ChatGPT editor was not found.")
+        print(f"Current URL: {page.url}")
+
+        try:
+            print(f"Page title: {await page.title()}")
+        except Exception:
+            pass
+
+        raise RuntimeError(
+            f"ChatGPT interface did not load. Current URL: {page.url}"
+        ) from e
+
+    return editor
+
+
+async def chatgpt_handle_response(
+    page,
+    context,
+    question,
+) -> str:
+
+    try:
+        editor = await ensure_chatgpt_page(page)
+
         await editor.click()
         await editor.press_sequentially(question)
         await editor.press("Enter")
-        stop_button = page.get_by_role("button", name="Stop answer")
-        await stop_button.wait_for(state="visible")
-        await stop_button.wait_for(state="hidden")
-        print("Generation finished for stop button")
-        await page.get_by_role("button", name="Copy response").last.evaluate("node => node.click()")
-        # await copy_button.wait_for(state="visible")
-        print("Generation finished")
-        # await copy_button.scroll_into_view_if_needed()
-        # await copy_button.click()
-        text = await page.evaluate("""
-        async () => {
-            return await navigator.clipboard.readText();
-        }
-        """)
-    except Exception as e:
-        print(e)
-        return "An error occurred while processing the request. Please try again later."
-    finally:
-        # await context.close()
-        return text    
 
+        # Wait for generation to start.
+        stop_button = page.get_by_role(
+            "button",
+            name="Stop answer",
+        )
 
-async def stream_chatgpt_response(page, prompt: str, newContext: bool):
-    if page.url != "https://chatgpt.com/":
-        await page.goto("https://chatgpt.com/", wait_until="domcontentloaded")
-        
-    print(f"Current URL: {page.url}")
-    
-    editor = page.locator("#prompt-textarea")
-    await editor.wait_for(state="visible")
-    await editor.click()
-    await editor.press_sequentially(prompt)
-    await editor.press("Enter")
-    
-    await asyncio.sleep(1.0)
-    
-    last_text = ""
-    has_started_generating = False # FIX 3: Flag to prevent early exits
-    while True:
-        await asyncio.sleep(0.2)
         try:
-            # FIX 1: Add .markdown back so we ONLY get the text, not the buttons/thinking UI
-            assistant_message = page.locator('[data-message-author-role="assistant"] .markdown').last
-            current_text = await assistant_message.inner_text()
+            await stop_button.wait_for(
+                state="visible",
+                timeout=30000,
+            )
+
+            # Wait until generation finishes.
+            await stop_button.wait_for(
+                state="hidden",
+                timeout=300000,
+            )
+
         except Exception:
-            continue
-            
-        # FIX 2: Compare the actual text instead of lengths to avoid slice corruption
-        if current_text != last_text:
-            has_started_generating = True 
-            
-            # FIX 3: Package the FULL text in JSON. 
-            # This safely escapes raw \n into literal \\n so the SSE stream doesn't break.
-            payload = json.dumps({"text": current_text})
-            yield f"data: {payload}\n\n"
-            
-            last_text = current_text
-            
-        else:
-            if has_started_generating:
-                is_done = await page.evaluate("""
+            print(
+                "Stop answer button was not detected or disappeared."
+            )
+
+        print("Generation finished for stop button")
+
+        # Wait for the Copy response button.
+        copy_button = page.get_by_role(
+            "button",
+            name="Copy response",
+        ).last
+
+        await copy_button.wait_for(
+            state="visible",
+            timeout=30000,
+        )
+
+        await copy_button.evaluate(
+            "node => node.click()"
+        )
+
+        print("Generation finished")
+
+        # Read the copied response.
+        text = await page.evaluate(
+            """
+            async () => {
+                return await navigator.clipboard.readText();
+            }
+            """
+        )
+
+        return text or ""
+
+    except Exception as e:
+        print(
+            f"Error while processing ChatGPT request: "
+            f"{type(e).__name__}: {e}"
+        )
+
+        # Do NOT use "finally: return text".
+        # text may not exist when an exception occurs.
+        return (
+            "An error occurred while processing the request. "
+            "Please try again later."
+        )
+
+
+async def stream_chatgpt_response(
+    page,
+    prompt: str,
+    newContext: bool,
+):
+    try:
+        editor = await ensure_chatgpt_page(page)
+
+        await editor.click()
+        await editor.press_sequentially(prompt)
+        await editor.press("Enter")
+
+        await asyncio.sleep(1.0)
+
+        last_text = ""
+        has_started_generating = False
+
+        while True:
+
+            await asyncio.sleep(0.2)
+
+            try:
+                assistant_message = page.locator(
+                    '[data-message-author-role="assistant"] .markdown'
+                ).last
+
+                current_text = await assistant_message.inner_text()
+
+            except Exception:
+                continue
+
+            # New content arrived.
+            if current_text != last_text:
+
+                has_started_generating = True
+
+                payload = json.dumps(
+                    {"text": current_text},
+                    ensure_ascii=False,
+                )
+
+                yield f"data: {payload}\n\n"
+
+                last_text = current_text
+
+                continue
+
+            # Don't check for completion before generation starts.
+            if not has_started_generating:
+                continue
+
+            try:
+                is_done = await page.evaluate(
+                    """
                     () => {
-                        return !document.querySelector('button[aria-label="Stop answer"]');
+                        return !document.querySelector(
+                            'button[aria-label="Stop answer"]'
+                        );
                     }
-                """)
+                    """
+                )
 
-                if is_done:
-                    current_text = await assistant_message.inner_text()
-                    if current_text != last_text:
-                        continue
-                    print("Generation finished")
-                    yield "data: [DONE]\n\n"
-                    if newContext:
+            except Exception:
+                continue
+
+            if is_done:
+
+                # One final read in case the response changed
+                # between our previous check and completion.
+                try:
+                    final_text = await assistant_message.inner_text()
+                except Exception:
+                    final_text = last_text
+
+                if final_text != last_text:
+
+                    payload = json.dumps(
+                        {"text": final_text},
+                        ensure_ascii=False,
+                    )
+
+                    yield f"data: {payload}\n\n"
+
+                    last_text = final_text
+
+                    continue
+
+                print("Generation finished")
+
+                yield "data: [DONE]\n\n"
+
+                if newContext:
+                    try:
                         await page.close()
-                    break
+                    except Exception as e:
+                        print(
+                            f"Error closing page: {e}"
+                        )
 
+                break
 
-# ------------------------------ This one also works but has some issues ------------------------------
-#   while True:
-#         await asyncio.sleep(0.2)
-        
-#         try:
-#             # FIX 4: Removed the redundant .last on the second line
-#             assistant_message = page.locator('[data-message-author-role="assistant"]')
-#             current_text = await assistant_message.last.inner_text()
-#             print(current_text)
-#         except Exception:
-#             # If element doesn't exist yet, keep looping
-#             continue
-            
-#         if len(current_text) > last_length:
-#             has_started_generating = True # Text has officially started flowing
-#             new_text = current_text[last_length:]
-#             payload = json.dumps({"text": current_text})
-#             yield f"data: {new_text}\n\n"
-#             last_length = len(current_text)
-            
-#         else:
-#             # FIX 3 (continued): Only check if it's done IF generation actually started.
-#             # This prevents the stream from closing if the network is just slow to start.
-#             if has_started_generating:
-#                 is_done = await page.evaluate("""
-#                     () => {
-#                         return !document.querySelector('button[aria-label="Stop answer"]');
-#                     }
-#                 """)
-                
-#                 if is_done:
-#                     current_text = await assistant_message.last.inner_text()
-#                     if len(current_text) > last_length:
-#                         continue
-#                     print("Generation finished")
-#                     yield "data: [DONE]\n\n"
-#                     break
+    except Exception as e:
+
+        print(
+            f"Streaming error: "
+            f"{type(e).__name__}: {e}"
+        )
+
+        # Send an SSE-compatible error instead of crashing
+        # the generator.
+        payload = json.dumps(
+            {
+                "error": (
+                    "An error occurred while processing "
+                    "the ChatGPT request."
+                )
+            },
+            ensure_ascii=False,
+        )
+
+        yield f"data: {payload}\n\n"
+        yield "data: [DONE]\n\n"
