@@ -41,6 +41,7 @@ async def ensure_chatgpt_page(page):
         )
     except Exception as e:
         print("ChatGPT editor was not found.")
+        print(e)
         print(f"Current URL: {page.url}")
         print(f"Page title: {title}")
 
