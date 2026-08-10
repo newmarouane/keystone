@@ -13,7 +13,7 @@ async def start_browser() -> tuple[Browser, async_playwright]:
         locale="en-US",permissions=["clipboard-read", "clipboard-write"]
     )
     playwright = await async_playwright().start()
-    context = await playwright.chromium.launch_persistent_context(headless=False, 
+    context = await playwright.chromium.launch_persistent_context(headless=True, 
                                                    user_data_dir="./profile",
                                                **launch_kwargs)
     page = context.pages[0] if context.pages else await context.new_page()
