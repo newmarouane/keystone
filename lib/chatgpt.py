@@ -6,23 +6,30 @@ CHATGPT_URL = "https://chatgpt.com/"
 
 
 async def ensure_chatgpt_page(page):
-    """
-    Navigate to ChatGPT if necessary and verify that the normal
-    ChatGPT interface is available.
-    """
-
-    if not page.url.startswith(CHATGPT_URL):
+    if not page.url.startswith("https://chatgpt.com"):
         await page.goto(
-            CHATGPT_URL,
+            "https://chatgpt.com/",
             wait_until="domcontentloaded",
         )
 
     print(f"Current ChatGPT URL: {page.url}")
 
-    # Detect Cloudflare challenge before waiting for the textarea.
-    if "__cf_chl" in page.url:
+    title = ""
+    try:
+        title = await page.title()
+    except Exception:
+        pass
+
+    print(f"Page title: {title}")
+
+    # Detect Cloudflare by URL OR page title.
+    if (
+        "__cf_chl" in page.url
+        or "just a moment" in title.lower()
+    ):
         raise RuntimeError(
-            f"Cloudflare challenge detected: {page.url}"
+            f"Cloudflare challenge detected. "
+            f"URL: {page.url}, Title: {title}"
         )
 
     editor = page.locator("#prompt-textarea")
@@ -33,16 +40,13 @@ async def ensure_chatgpt_page(page):
             timeout=30000,
         )
     except Exception as e:
-        print(f"ChatGPT editor was not found.")
+        print("ChatGPT editor was not found.")
         print(f"Current URL: {page.url}")
-
-        try:
-            print(f"Page title: {await page.title()}")
-        except Exception:
-            pass
+        print(f"Page title: {title}")
 
         raise RuntimeError(
-            f"ChatGPT interface did not load. Current URL: {page.url}"
+            f"ChatGPT interface did not load. "
+            f"URL: {page.url}, Title: {title}"
         ) from e
 
     return editor
