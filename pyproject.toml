@@ -1,0 +1,11 @@
+[project]
+name = "ghostgpt"
+version = "0.1.0"
+description = "GhostGPT: Stealth unauthenticated ChatGPT API bridge via browser automation"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.139.0",
+    "patchright>=1.61.2",
+    "uvicorn>=0.51.0",
+]
