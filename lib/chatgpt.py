@@ -120,6 +120,7 @@ async def chatgpt_handle_response(
         return text or ""
 
     except Exception as e:
+        print(e)
         print(
             f"Error while processing ChatGPT request: "
             f"{type(e).__name__}: {e}"
