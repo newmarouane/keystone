@@ -1,10 +1,10 @@
+import os
 import asyncio
 import json
-import os
 import time
 from pathlib import Path
 
-from playwright.async_api import (
+from patchright.async_api import (
     Page,
     TimeoutError as PlaywrightTimeoutError,
 )
