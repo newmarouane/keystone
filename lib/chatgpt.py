@@ -15,11 +15,11 @@ from patchright.async_api import (
 
 CHATGPT_URL = "https://chatgpt.com/"
 
-EDITOR_TIMEOUT = 60_000
 PAGE_LOAD_TIMEOUT = 60_000
 NETWORK_IDLE_TIMEOUT = 20_000
+EDITOR_TIMEOUT = 60_000
 
-GENERATION_TIMEOUT = 300  # seconds
+GENERATION_TIMEOUT = 300
 
 DEBUG_DIR = Path("/app/debug")
 DEBUG_DIR.mkdir(
@@ -29,7 +29,7 @@ DEBUG_DIR.mkdir(
 
 
 # ============================================================
-# DEBUG
+# DEBUG HELPERS
 # ============================================================
 
 async def save_debug_info(
@@ -37,27 +37,32 @@ async def save_debug_info(
     prefix: str = "chatgpt",
 ):
     """
-    Save screenshot, HTML and body text.
+    Save debugging information.
 
-    Files are saved under /app/debug so they can
-    optionally be exposed through FastAPI.
+    Files are stored in:
+
+        /app/debug/
+
+    They should be exposed by FastAPI as:
+
+        /debug/<filename>
     """
 
     timestamp = int(time.time())
 
     screenshot_path = (
-        DEBUG_DIR
-        / f"{prefix}-{timestamp}.png"
+        DEBUG_DIR /
+        f"{prefix}-{timestamp}.png"
     )
 
     html_path = (
-        DEBUG_DIR
-        / f"{prefix}-{timestamp}.html"
+        DEBUG_DIR /
+        f"{prefix}-{timestamp}.html"
     )
 
-    body_path = (
-        DEBUG_DIR
-        / f"{prefix}-{timestamp}.txt"
+    text_path = (
+        DEBUG_DIR /
+        f"{prefix}-{timestamp}.txt"
     )
 
     # --------------------------------------------------------
@@ -79,7 +84,7 @@ async def save_debug_info(
     except Exception as e:
 
         print(
-            f"[DEBUG] Screenshot error: {e}"
+            f"[DEBUG] Could not save screenshot: {e}"
         )
 
     # --------------------------------------------------------
@@ -89,7 +94,7 @@ async def save_debug_info(
     try:
 
         html = await page.content()
-        print(html)
+
         html_path.write_text(
             html,
             encoding="utf-8",
@@ -103,7 +108,7 @@ async def save_debug_info(
     except Exception as e:
 
         print(
-            f"[DEBUG] HTML error: {e}"
+            f"[DEBUG] Could not save HTML: {e}"
         )
 
     # --------------------------------------------------------
@@ -112,20 +117,20 @@ async def save_debug_info(
 
     try:
 
-        body_text = await page.locator(
-            "body"
-        ).inner_text(
+        body = page.locator("body")
+
+        body_text = await body.inner_text(
             timeout=5000
         )
 
-        body_path.write_text(
+        text_path.write_text(
             body_text,
             encoding="utf-8",
         )
 
         print(
             f"[DEBUG] Body text saved: "
-            f"{body_path}"
+            f"{text_path}"
         )
 
         print(
@@ -139,7 +144,7 @@ async def save_debug_info(
     except Exception as e:
 
         print(
-            f"[DEBUG] Body text error: {e}"
+            f"[DEBUG] Could not save body text: {e}"
         )
 
     # --------------------------------------------------------
@@ -179,111 +184,307 @@ async def save_debug_info(
     except Exception as e:
 
         print(
-            f"[DEBUG] Browser info error: {e}"
+            f"[DEBUG] Could not get browser information: {e}"
         )
 
 
 # ============================================================
-# PAGE DIAGNOSTICS
+# PAGE INFORMATION
 # ============================================================
 
-async def print_page_diagnostics(
+async def get_page_title(
+    page: Page,
+) -> str:
+
+    try:
+
+        return await page.title()
+
+    except Exception:
+
+        return ""
+
+
+async def get_body_html(
+    page: Page,
+) -> str:
+
+    try:
+
+        return await page.content()
+
+    except Exception:
+
+        return ""
+
+
+# ============================================================
+# CLOUDFLARE DETECTION
+# ============================================================
+
+async def detect_cloudflare_challenge(
+    page: Page,
+) -> bool:
+    """
+    Detect Cloudflare managed challenges.
+
+    This checks the actual HTML markers observed in the
+    current ChatGPT Cloudflare challenge page.
+
+    It DOES NOT attempt to bypass the challenge.
+    """
+
+    try:
+
+        url = page.url.lower()
+
+    except Exception:
+
+        url = ""
+
+    title = (
+        await get_page_title(page)
+    ).lower()
+
+    html = (
+        await get_body_html(page)
+    ).lower()
+
+    # --------------------------------------------------------
+    # URL indicators
+    # --------------------------------------------------------
+
+    url_indicators = [
+        "__cf_chl_rt_tk",
+        "__cf_chl_tk",
+        "__cf_chl_f_tk",
+        "/cdn-cgi/challenge-platform/",
+    ]
+
+    # --------------------------------------------------------
+    # Title indicators
+    # --------------------------------------------------------
+
+    title_indicators = [
+        "just a moment",
+        "checking your browser",
+        "verify you are human",
+    ]
+
+    # --------------------------------------------------------
+    # Actual Turnstile / challenge markers
+    # --------------------------------------------------------
+
+    html_indicators = [
+        "cf-turnstile-response",
+        "challenges.cloudflare.com/turnstile",
+        "/cdn-cgi/challenge-platform/",
+        "challenge-platform",
+        "verification successful",
+        "enable javascript and cookies to continue",
+    ]
+
+    url_match = any(
+        x in url
+        for x in url_indicators
+    )
+
+    title_match = any(
+        x in title
+        for x in title_indicators
+    )
+
+    html_matches = [
+        x
+        for x in html_indicators
+        if x in html
+    ]
+
+    # --------------------------------------------------------
+    # Strong detection
+    # --------------------------------------------------------
+
+    if (
+        title_match
+        and len(html_matches) >= 2
+    ):
+        return True
+
+    if (
+        url_match
+        and (
+            title_match
+            or len(html_matches) >= 2
+        )
+    ):
+        return True
+
+    return False
+
+
+# ============================================================
+# WAIT FOR CHATGPT OR CHALLENGE
+# ============================================================
+
+async def wait_for_chatgpt(
+    page: Page,
+):
+    """
+    Wait until either:
+
+    1. ChatGPT editor appears
+    2. Cloudflare challenge is detected
+    3. Timeout occurs
+    """
+
+    start = (
+        asyncio.get_running_loop().time()
+    )
+
+    timeout_seconds = (
+        EDITOR_TIMEOUT / 1000
+    )
+
+    while True:
+
+        # ----------------------------------------------------
+        # Cloudflare
+        # ----------------------------------------------------
+
+        if await detect_cloudflare_challenge(
+            page
+        ):
+
+            await save_debug_info(
+                page,
+                prefix="cloudflare",
+            )
+
+            raise RuntimeError(
+                "Cloudflare managed security "
+                "challenge detected on chatgpt.com."
+            )
+
+        # ----------------------------------------------------
+        # Try editor
+        # ----------------------------------------------------
+
+        selectors = [
+            "#prompt-textarea",
+            "textarea[placeholder*='Message']",
+            "textarea",
+            "[contenteditable='true']",
+        ]
+
+        for selector in selectors:
+
+            try:
+
+                locator = page.locator(
+                    selector
+                ).last
+
+                if await locator.is_visible(
+                    timeout=1000
+                ):
+
+                    print(
+                        "[CHATGPT] Editor found using: "
+                        f"{selector}"
+                    )
+
+                    return locator
+
+            except Exception:
+
+                pass
+
+        # ----------------------------------------------------
+        # Timeout
+        # ----------------------------------------------------
+
+        elapsed = (
+            asyncio.get_running_loop().time()
+            - start
+        )
+
+        if elapsed >= timeout_seconds:
+
+            await save_debug_info(
+                page,
+                prefix="editor-timeout",
+            )
+
+            raise RuntimeError(
+                "ChatGPT editor was not found "
+                f"within {EDITOR_TIMEOUT / 1000:.0f} seconds."
+            )
+
+        await asyncio.sleep(
+            0.5
+        )
+
+
+# ============================================================
+# BROWSER INFORMATION
+# ============================================================
+
+async def print_browser_information(
     page: Page,
 ):
 
-    print(
-        "\n"
-        + "=" * 70
-    )
-
-    print(
-        "CHATGPT PAGE DIAGNOSTICS"
-    )
-
-    print(
-        "=" * 70
-    )
-
-    print(
-        f"URL: {page.url}"
-    )
-
     try:
 
-        title = await page.title()
-
-    except Exception:
-
-        title = ""
-
-    print(
-        f"TITLE: {title!r}"
-    )
-
-    try:
-
-        ready_state = await page.evaluate(
-            "() => document.readyState"
+        information = await page.evaluate(
+            """
+            () => ({
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                languages: navigator.languages,
+                webdriver: navigator.webdriver,
+                readyState: document.readyState,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                devicePixelRatio: window.devicePixelRatio
+            })
+            """
         )
 
         print(
-            f"READY STATE: {ready_state}"
-        )
-
-    except Exception:
-        pass
-
-    try:
-
-        body_text = await page.locator(
-            "body"
-        ).inner_text(
-            timeout=5000
+            "[BROWSER] Information:"
         )
 
         print(
-            "BODY:"
-        )
-
-        print(
-            body_text[:3000]
+            json.dumps(
+                information,
+                indent=2,
+                ensure_ascii=False,
+            )
         )
 
     except Exception as e:
 
         print(
-            f"BODY ERROR: {e}"
+            f"[BROWSER] Information error: {e}"
         )
 
-    print(
-        "=" * 70
-    )
-
 
 # ============================================================
-# AUTHENTICATION / COOKIES DIAGNOSTICS
+# COOKIE INFORMATION
 # ============================================================
 
-async def inspect_authentication(
+async def print_cookie_information(
     page: Page,
 ):
 
-    print(
-        "[AUTH] Inspecting browser session..."
-    )
-
     try:
 
-        context = page.context
-
-        cookies = await context.cookies()
+        cookies = await page.context.cookies()
 
         print(
-            f"[AUTH] Total cookies: "
-            f"{len(cookies)}"
+            f"[AUTH] Total cookies: {len(cookies)}"
         )
-
-        relevant_count = 0
 
         for cookie in cookies:
 
@@ -302,20 +503,10 @@ async def inspect_authentication(
                 or "openai" in domain.lower()
             ):
 
-                relevant_count += 1
-
-                # IMPORTANT:
-                # Never print cookie values.
-
                 print(
-                    f"[AUTH] Cookie: "
-                    f"{name} @ {domain}"
+                    "[AUTH] Cookie:"
+                    f" {name} @ {domain}"
                 )
-
-        print(
-            "[AUTH] ChatGPT/OpenAI related "
-            f"cookies: {relevant_count}"
-        )
 
     except Exception as e:
 
@@ -325,104 +516,125 @@ async def inspect_authentication(
 
 
 # ============================================================
-# SECURITY / CLOUDFLARE DETECTION
+# ENSURE CHATGPT PAGE
 # ============================================================
 
-async def detect_security_challenge(
+async def ensure_chatgpt_page(
     page: Page,
 ):
-    """
-    Detect common Cloudflare challenge indicators.
 
-    This function only detects the challenge.
-    It does not attempt to bypass it.
-    """
-
-    try:
-
-        url = page.url.lower()
-
-    except Exception:
-
-        url = ""
-
-    try:
-
-        title = (
-            await page.title()
-        ).lower()
-
-    except Exception:
-
-        title = ""
-
-    try:
-
-        html = (
-            await page.content()
-        ).lower()
-
-    except Exception:
-
-        html = ""
-
-    # --------------------------------------------------------
-    # URL indicators
-    # --------------------------------------------------------
-
-    url_indicators = [
-        "__cf_chl",
-        "challenge-platform",
-        "cdn-cgi/challenge",
-        "cf-chl",
-    ]
-
-    # --------------------------------------------------------
-    # Title indicators
-    # --------------------------------------------------------
-
-    title_indicators = [
-        "just a moment",
-        "checking your browser",
-        "verify you are human",
-    ]
-
-    # --------------------------------------------------------
-    # HTML indicators
-    # --------------------------------------------------------
-
-    html_indicators = [
-        "just a moment",
-        "checking your browser",
-        "verify you are human",
-        "performing security verification",
-        "challenge-platform",
-        "cf-chl",
-    ]
-
-    url_match = any(
-        value in url
-        for value in url_indicators
+    print()
+    print(
+        "=" * 70
+    )
+    print(
+        "[CHATGPT] Loading ChatGPT..."
+    )
+    print(
+        "=" * 70
     )
 
-    title_match = any(
-        value in title
-        for value in title_indicators
-    )
+    # --------------------------------------------------------
+    # Navigate
+    # --------------------------------------------------------
 
-    html_match = any(
-        value in html
-        for value in html_indicators
-    )
-
-    if (
-        url_match
-        or title_match
-        or html_match
+    if not page.url.startswith(
+        CHATGPT_URL
     ):
 
         print(
-            "[SECURITY] Cloudflare/security "
+            "[CHATGPT] Navigating to:"
+            f" {CHATGPT_URL}"
+        )
+
+        await page.goto(
+            CHATGPT_URL,
+            wait_until="domcontentloaded",
+            timeout=PAGE_LOAD_TIMEOUT,
+        )
+
+    else:
+
+        print(
+            "[CHATGPT] Already on ChatGPT."
+        )
+
+    print(
+        f"[CHATGPT] URL: {page.url}"
+    )
+
+    # --------------------------------------------------------
+    # Network idle
+    # --------------------------------------------------------
+
+    try:
+
+        await page.wait_for_load_state(
+            "networkidle",
+            timeout=NETWORK_IDLE_TIMEOUT,
+        )
+
+        print(
+            "[CHATGPT] Network idle."
+        )
+
+    except PlaywrightTimeoutError:
+
+        print(
+            "[CHATGPT] Network idle timeout. "
+            "Continuing."
+        )
+
+    # --------------------------------------------------------
+    # Allow frontend JS to initialize
+    # --------------------------------------------------------
+
+    await asyncio.sleep(
+        2
+    )
+
+    # --------------------------------------------------------
+    # Page information
+    # --------------------------------------------------------
+
+    title = await get_page_title(
+        page
+    )
+
+    print(
+        f"[CHATGPT] Title: {title!r}"
+    )
+
+    print(
+        f"[CHATGPT] URL: {page.url}"
+    )
+
+    # --------------------------------------------------------
+    # Browser information
+    # --------------------------------------------------------
+
+    await print_browser_information(
+        page
+    )
+
+    # --------------------------------------------------------
+    # Cookies
+    # --------------------------------------------------------
+
+    await print_cookie_information(
+        page
+    )
+
+    # --------------------------------------------------------
+    # Cloudflare
+    # --------------------------------------------------------
+
+    if await detect_cloudflare_challenge(
+        page
+    ):
+
+        print(
+            "[SECURITY] Cloudflare managed "
             "challenge detected."
         )
 
@@ -445,240 +657,18 @@ async def detect_security_challenge(
             f"Title: {title!r}"
         )
 
-
-# ============================================================
-# BROWSER INFORMATION
-# ============================================================
-
-async def print_browser_information(
-    page: Page,
-):
-
-    try:
-
-        info = await page.evaluate(
-            """
-            () => ({
-                userAgent: navigator.userAgent,
-                platform: navigator.platform,
-                language: navigator.language,
-                languages: navigator.languages,
-                webdriver: navigator.webdriver,
-                readyState: document.readyState,
-                width: window.innerWidth,
-                height: window.innerHeight,
-                devicePixelRatio: window.devicePixelRatio
-            })
-            """
-        )
-
-        print(
-            "[BROWSER] Information:"
-        )
-
-        print(
-            json.dumps(
-                info,
-                indent=2,
-                ensure_ascii=False,
-            )
-        )
-
-    except Exception as e:
-
-        print(
-            f"[BROWSER] Information error: {e}"
-        )
-
-
-# ============================================================
-# FIND EDITOR
-# ============================================================
-
-async def get_chatgpt_editor(
-    page: Page,
-):
-    """
-    Try several possible ChatGPT composer selectors.
-    """
-
-    selectors = [
-        "#prompt-textarea",
-        "textarea[placeholder*='Message']",
-        "textarea",
-        "[contenteditable='true']",
-    ]
-
-    print(
-        "[EDITOR] Searching for ChatGPT editor..."
-    )
-
-    for selector in selectors:
-
-        try:
-
-            locator = page.locator(
-                selector
-            ).last
-
-            await locator.wait_for(
-                state="visible",
-                timeout=5000,
-            )
-
-            print(
-                "[EDITOR] Found editor using: "
-                f"{selector}"
-            )
-
-            return locator
-
-        except Exception:
-
-            print(
-                "[EDITOR] Not found: "
-                f"{selector}"
-            )
-
-    raise RuntimeError(
-        "Could not find ChatGPT message editor."
-    )
-
-
-# ============================================================
-# ENSURE CHATGPT PAGE
-# ============================================================
-
-async def ensure_chatgpt_page(
-    page: Page,
-):
-
-    print(
-        "\n"
-        + "=" * 70
-    )
-
-    print(
-        "[CHATGPT] Loading ChatGPT..."
-    )
-
-    print(
-        "=" * 70
-    )
-
     # --------------------------------------------------------
-    # Navigate
-    # --------------------------------------------------------
-
-    if not page.url.startswith(
-        CHATGPT_URL
-    ):
-
-        print(
-            f"[CHATGPT] Navigating to: "
-            f"{CHATGPT_URL}"
-        )
-
-        await page.goto(
-            CHATGPT_URL,
-            wait_until="domcontentloaded",
-            timeout=PAGE_LOAD_TIMEOUT,
-        )
-
-    else:
-
-        print(
-            "[CHATGPT] Already on ChatGPT."
-        )
-
-    print(
-        f"[CHATGPT] URL: {page.url}"
-    )
-
-    # --------------------------------------------------------
-    # Wait for network
+    # Wait for actual ChatGPT UI
     # --------------------------------------------------------
 
     try:
 
-        await page.wait_for_load_state(
-            "networkidle",
-            timeout=NETWORK_IDLE_TIMEOUT,
-        )
-
-        print(
-            "[CHATGPT] Network idle."
-        )
-
-    except PlaywrightTimeoutError:
-
-        print(
-            "[CHATGPT] Network idle timeout. "
-            "Continuing."
-        )
-
-    # --------------------------------------------------------
-    # Give frontend time to initialize
-    # --------------------------------------------------------
-
-    await asyncio.sleep(2)
-
-    # --------------------------------------------------------
-    # Basic information
-    # --------------------------------------------------------
-
-    try:
-
-        title = await page.title()
-
-    except Exception:
-
-        title = ""
-
-    print(
-        f"[CHATGPT] Title: {title!r}"
-    )
-
-    print(
-        f"[CHATGPT] URL: {page.url}"
-    )
-
-    # --------------------------------------------------------
-    # Browser information
-    # --------------------------------------------------------
-
-    await print_browser_information(
-        page
-    )
-
-    # --------------------------------------------------------
-    # Authentication diagnostics
-    # --------------------------------------------------------
-
-    await inspect_authentication(
-        page
-    )
-
-    # --------------------------------------------------------
-    # Cloudflare/security detection
-    # --------------------------------------------------------
-
-    await detect_security_challenge(
-        page
-    )
-
-    # --------------------------------------------------------
-    # Find editor
-    # --------------------------------------------------------
-
-    try:
-
-        editor = await get_chatgpt_editor(
+        editor = await wait_for_chatgpt(
             page
         )
 
         print(
-            "[CHATGPT] Editor successfully found."
+            "[CHATGPT] Interface loaded."
         )
 
         return editor
@@ -686,28 +676,19 @@ async def ensure_chatgpt_page(
     except Exception as e:
 
         print(
-            "[CHATGPT] Editor not found."
+            "[CHATGPT] Interface did not load."
         )
 
         print(
             f"[CHATGPT] Error: {e}"
         )
 
-        await print_page_diagnostics(
-            page
-        )
-
         await save_debug_info(
             page,
-            prefix="editor-not-found",
+            prefix="interface-error",
         )
 
-        raise RuntimeError(
-            "ChatGPT interface did not load.\n"
-            f"URL: {page.url}\n"
-            f"Title: {title!r}\n"
-            f"Original error: {e}"
-        ) from e
+        raise
 
 
 # ============================================================
@@ -727,7 +708,7 @@ async def submit_prompt(
     await editor.click()
 
     # --------------------------------------------------------
-    # Preferred: fill
+    # Try fill first
     # --------------------------------------------------------
 
     try:
@@ -736,20 +717,24 @@ async def submit_prompt(
             prompt
         )
 
-    except Exception as fill_error:
-
         print(
-            "[CHATGPT] editor.fill() failed: "
-            f"{fill_error}"
+            "[CHATGPT] Prompt filled."
         )
 
-        # ----------------------------------------------------
-        # Fallback: sequential typing
-        # ----------------------------------------------------
+    except Exception as e:
+
+        print(
+            "[CHATGPT] fill() failed:"
+            f" {e}"
+        )
+
+        print(
+            "[CHATGPT] Falling back to typing."
+        )
 
         await editor.press_sequentially(
             prompt,
-            delay=2,
+            delay=1,
         )
 
     await asyncio.sleep(
@@ -766,7 +751,7 @@ async def submit_prompt(
 
 
 # ============================================================
-# FIND ASSISTANT MESSAGE
+# FIND LAST ASSISTANT MESSAGE
 # ============================================================
 
 async def get_last_assistant_message(
@@ -793,11 +778,6 @@ async def get_last_assistant_message(
 
             last = locator.last
 
-            await last.wait_for(
-                state="visible",
-                timeout=3000,
-            )
-
             return last
 
         except Exception:
@@ -808,7 +788,7 @@ async def get_last_assistant_message(
 
 
 # ============================================================
-# GET ASSISTANT TEXT
+# GET MESSAGE TEXT
 # ============================================================
 
 async def get_assistant_text(
@@ -821,11 +801,12 @@ async def get_assistant_text(
 
     try:
 
-        text = await assistant_message.inner_text(
-            timeout=5000
+        return (
+            await assistant_message.inner_text(
+                timeout=5000
+            )
+            or ""
         )
-
-        return text or ""
 
     except Exception:
 
@@ -857,7 +838,7 @@ async def is_chatgpt_generating(
             ).last
 
             if await locator.is_visible(
-                timeout=1000
+                timeout=500
             ):
 
                 return True
@@ -870,7 +851,163 @@ async def is_chatgpt_generating(
 
 
 # ============================================================
-# STREAMING RESPONSE
+# WAIT FOR RESPONSE
+# ============================================================
+
+async def wait_for_response(
+    page: Page,
+):
+
+    start = (
+        asyncio.get_running_loop().time()
+    )
+
+    last_text = ""
+
+    started = False
+
+    stable_count = 0
+
+    while True:
+
+        elapsed = (
+            asyncio.get_running_loop().time()
+            - start
+        )
+
+        if elapsed > GENERATION_TIMEOUT:
+
+            raise RuntimeError(
+                "ChatGPT response generation "
+                "timed out."
+            )
+
+        await asyncio.sleep(
+            0.3
+        )
+
+        assistant = (
+            await get_last_assistant_message(
+                page
+            )
+        )
+
+        if assistant is None:
+
+            continue
+
+        text = (
+            await get_assistant_text(
+                assistant
+            )
+        )
+
+        if not text:
+
+            continue
+
+        if text != last_text:
+
+            last_text = text
+
+            started = True
+
+            stable_count = 0
+
+            continue
+
+        if not started:
+
+            continue
+
+        generating = (
+            await is_chatgpt_generating(
+                page
+            )
+        )
+
+        if generating:
+
+            stable_count = 0
+
+            continue
+
+        stable_count += 1
+
+        # Require the response to remain stable
+        # for several polling cycles.
+
+        if stable_count >= 4:
+
+            return last_text
+
+
+# ============================================================
+# NON-STREAMING
+# ============================================================
+
+async def chatgpt_handle_response(
+    page: Page,
+    context,
+    question: str,
+) -> str:
+
+    try:
+
+        editor = await ensure_chatgpt_page(
+            page
+        )
+
+        await submit_prompt(
+            page,
+            editor,
+            question,
+        )
+
+        print(
+            "[CHATGPT] Waiting for response..."
+        )
+
+        response = await wait_for_response(
+            page
+        )
+
+        print(
+            "[CHATGPT] Generation finished."
+        )
+
+        return response
+
+    except Exception as e:
+
+        print()
+        print(
+            "[CHATGPT] Error while processing request:"
+        )
+
+        print(
+            f"{type(e).__name__}: {e}"
+        )
+
+        try:
+
+            await save_debug_info(
+                page,
+                prefix="request-error",
+            )
+
+        except Exception:
+            pass
+
+        return (
+            "An error occurred while processing "
+            "the request. "
+            "Please try again later."
+        )
+
+
+# ============================================================
+# STREAMING
 # ============================================================
 
 async def stream_chatgpt_response(
@@ -881,17 +1018,9 @@ async def stream_chatgpt_response(
 
     try:
 
-        # ----------------------------------------------------
-        # Ensure ChatGPT
-        # ----------------------------------------------------
-
         editor = await ensure_chatgpt_page(
             page
         )
-
-        # ----------------------------------------------------
-        # Submit
-        # ----------------------------------------------------
 
         await submit_prompt(
             page,
@@ -900,20 +1029,18 @@ async def stream_chatgpt_response(
         )
 
         await asyncio.sleep(
-            1
+            0.5
         )
 
         last_text = ""
 
-        has_started_generating = False
+        started = False
 
-        generation_start = (
+        start_time = (
             asyncio.get_running_loop().time()
         )
 
-        # ----------------------------------------------------
-        # Main loop
-        # ----------------------------------------------------
+        stable_count = 0
 
         while True:
 
@@ -923,7 +1050,7 @@ async def stream_chatgpt_response(
 
             elapsed = (
                 asyncio.get_running_loop().time()
-                - generation_start
+                - start_time
             )
 
             if elapsed > GENERATION_TIMEOUT:
@@ -934,8 +1061,7 @@ async def stream_chatgpt_response(
                 )
 
                 raise RuntimeError(
-                    "ChatGPT generation timed out "
-                    f"after {GENERATION_TIMEOUT} seconds."
+                    "ChatGPT generation timed out."
                 )
 
             await asyncio.sleep(
@@ -946,23 +1072,23 @@ async def stream_chatgpt_response(
             # Find assistant message
             # ------------------------------------------------
 
-            assistant_message = (
+            assistant = (
                 await get_last_assistant_message(
                     page
                 )
             )
 
-            if assistant_message is None:
+            if assistant is None:
 
                 continue
 
             # ------------------------------------------------
-            # Read response
+            # Read current text
             # ------------------------------------------------
 
             current_text = (
                 await get_assistant_text(
-                    assistant_message
+                    assistant
                 )
             )
 
@@ -971,12 +1097,14 @@ async def stream_chatgpt_response(
                 continue
 
             # ------------------------------------------------
-            # New text
+            # New content
             # ------------------------------------------------
 
             if current_text != last_text:
 
-                has_started_generating = True
+                started = True
+
+                stable_count = 0
 
                 payload = json.dumps(
                     {
@@ -994,15 +1122,15 @@ async def stream_chatgpt_response(
                 continue
 
             # ------------------------------------------------
-            # Don't finish before generation starts
+            # Don't finish before response starts
             # ------------------------------------------------
 
-            if not has_started_generating:
+            if not started:
 
                 continue
 
             # ------------------------------------------------
-            # Check if still generating
+            # Check generation
             # ------------------------------------------------
 
             generating = (
@@ -1013,17 +1141,25 @@ async def stream_chatgpt_response(
 
             if generating:
 
+                stable_count = 0
+
                 continue
 
             # ------------------------------------------------
-            # Wait briefly and read final response
+            # Require stability
             # ------------------------------------------------
 
-            await asyncio.sleep(
-                0.5
-            )
+            stable_count += 1
 
-            assistant_message = (
+            if stable_count < 4:
+
+                continue
+
+            # ------------------------------------------------
+            # Final read
+            # ------------------------------------------------
+
+            assistant = (
                 await get_last_assistant_message(
                     page
                 )
@@ -1031,7 +1167,7 @@ async def stream_chatgpt_response(
 
             final_text = (
                 await get_assistant_text(
-                    assistant_message
+                    assistant
                 )
             )
 
@@ -1050,10 +1186,12 @@ async def stream_chatgpt_response(
 
                 last_text = final_text
 
+                stable_count = 0
+
                 continue
 
             # ------------------------------------------------
-            # Done
+            # Finished
             # ------------------------------------------------
 
             print(
@@ -1064,6 +1202,10 @@ async def stream_chatgpt_response(
                 "data: [DONE]\n\n"
             )
 
+            # ------------------------------------------------
+            # Close page if requested
+            # ------------------------------------------------
+
             if newContext:
 
                 try:
@@ -1073,16 +1215,16 @@ async def stream_chatgpt_response(
                 except Exception as e:
 
                     print(
-                        "[CHATGPT] Page close error: "
-                        f"{e}"
+                        "[CHATGPT] "
+                        f"Page close error: {e}"
                     )
 
             break
 
     except Exception as e:
 
+        print()
         print(
-            "\n"
             "[CHATGPT] Streaming error:"
         )
 
@@ -1107,6 +1249,7 @@ async def stream_chatgpt_response(
                     "processing the ChatGPT request."
                 ),
                 "type": type(e).__name__,
+                "message": str(e),
             },
             ensure_ascii=False,
         )
@@ -1121,168 +1264,20 @@ async def stream_chatgpt_response(
 
 
 # ============================================================
-# NON-STREAMING RESPONSE
-# ============================================================
-
-async def chatgpt_handle_response(
-    page: Page,
-    context,
-    question: str,
-) -> str:
-
-    try:
-
-        # ----------------------------------------------------
-        # Ensure page
-        # ----------------------------------------------------
-
-        editor = await ensure_chatgpt_page(
-            page
-        )
-
-        # ----------------------------------------------------
-        # Submit
-        # ----------------------------------------------------
-
-        await submit_prompt(
-            page,
-            editor,
-            question,
-        )
-
-        print(
-            "[CHATGPT] Waiting for response..."
-        )
-
-        start_time = (
-            asyncio.get_running_loop().time()
-        )
-
-        last_text = ""
-
-        while True:
-
-            elapsed = (
-                asyncio.get_running_loop().time()
-                - start_time
-            )
-
-            if elapsed > GENERATION_TIMEOUT:
-
-                await save_debug_info(
-                    page,
-                    prefix="request-timeout",
-                )
-
-                raise RuntimeError(
-                    "ChatGPT response timed out."
-                )
-
-            await asyncio.sleep(
-                0.5
-            )
-
-            assistant_message = (
-                await get_last_assistant_message(
-                    page
-                )
-            )
-
-            if assistant_message is None:
-
-                continue
-
-            current_text = (
-                await get_assistant_text(
-                    assistant_message
-                )
-            )
-
-            if current_text:
-
-                last_text = current_text
-
-            generating = (
-                await is_chatgpt_generating(
-                    page
-                )
-            )
-
-            if (
-                last_text
-                and not generating
-            ):
-
-                await asyncio.sleep(
-                    0.5
-                )
-
-                assistant_message = (
-                    await get_last_assistant_message(
-                        page
-                    )
-                )
-
-                final_text = (
-                    await get_assistant_text(
-                        assistant_message
-                    )
-                )
-
-                if final_text:
-
-                    last_text = final_text
-
-                print(
-                    "[CHATGPT] Generation finished."
-                )
-
-                return last_text
-
-    except Exception as e:
-
-        print(
-            "\n"
-            "[CHATGPT] Error while processing request:"
-        )
-
-        print(
-            f"{type(e).__name__}: {e}"
-        )
-
-        try:
-
-            await save_debug_info(
-                page,
-                prefix="request-error",
-            )
-
-        except Exception:
-            pass
-
-        return (
-            "An error occurred while processing "
-            "the request. Please try again later."
-        )
-
-
-# ============================================================
-# TEST
+# TEST FUNCTION
 # ============================================================
 
 async def test_chatgpt(
     page: Page,
 ):
 
+    print()
     print(
-        "\n"
-        + "=" * 70
+        "=" * 70
     )
-
     print(
-        "CHATGPT AUTOMATION TEST"
+        "CHATGPT TEST"
     )
-
     print(
         "=" * 70
     )
@@ -1294,27 +1289,25 @@ async def test_chatgpt(
         )
 
         print(
-            "[TEST] SUCCESS"
-        )
-
-        print(
-            "[TEST] Editor detected."
+            "[TEST] ChatGPT interface detected."
         )
 
         try:
 
-            print(
-                "[TEST] Tag:",
-                await editor.evaluate(
-                    "el => el.tagName"
-                ),
+            tag = await editor.evaluate(
+                "el => el.tagName"
+            )
+
+            element_id = await editor.get_attribute(
+                "id"
             )
 
             print(
-                "[TEST] ID:",
-                await editor.get_attribute(
-                    "id"
-                ),
+                f"[TEST] Tag: {tag}"
+            )
+
+            print(
+                f"[TEST] ID: {element_id}"
             )
 
         except Exception:
@@ -1325,7 +1318,7 @@ async def test_chatgpt(
     except Exception as e:
 
         print(
-            "[TEST] FAILED"
+            "[TEST] FAILED:"
         )
 
         print(
