@@ -7,7 +7,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# System dependencies required by Chromium
+# ------------------------------------------------------------
+# Chromium system dependencies
+# ------------------------------------------------------------
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-liberation \
@@ -41,23 +44,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
+# ------------------------------------------------------------
 # Upgrade pip
+# ------------------------------------------------------------
+
 RUN pip install --upgrade pip
 
-# Copy dependency definition
+# ------------------------------------------------------------
+# Install application dependencies
+# ------------------------------------------------------------
+
 COPY pyproject.toml README.md ./
 
-# Install GhostGPT and all dependencies from pyproject.toml
 RUN pip install .
 
+# ------------------------------------------------------------
 # Install Patchright Chromium
+# ------------------------------------------------------------
+
 RUN patchright install chromium
 
-# Copy application source
+# ------------------------------------------------------------
+# Copy application
+# ------------------------------------------------------------
+
 COPY . .
 
-# Render will provide $PORT
+# ------------------------------------------------------------
+# Render
+# ------------------------------------------------------------
+
 EXPOSE 8000
 
-# Start FastAPI
 CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
