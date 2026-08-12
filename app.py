@@ -8,7 +8,20 @@ from browser import  start_browser,create_new_page
 from lib.chatgpt import chatgpt_handle_response, stream_chatgpt_response
 import asyncio
 import sys
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
+Path("/app/debug").mkdir(
+    parents=True,
+    exist_ok=True,
+)
+app = FastAPI()
+
+app.mount(
+    "/debug",
+    StaticFiles(directory="/app/debug"),
+    name="debug",
+)
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 # browser = None
