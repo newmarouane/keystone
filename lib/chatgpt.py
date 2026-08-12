@@ -554,125 +554,47 @@ async def print_cookie_information(
 # ENSURE CHATGPT PAGE
 # ============================================================
 
-async def ensure_chatgpt_page(
-    page: Page,
-):
+async def ensure_chatgpt_page(page: Page):
 
-    print()
-    print(
-        "=" * 70
-    )
-    print(
-        "[CHATGPT] Loading ChatGPT..."
-    )
-    print(
-        "=" * 70
-    )
+    print("[CHATGPT] Loading ChatGPT...")
 
-    # --------------------------------------------------------
-    # Navigate
-    # --------------------------------------------------------
-
-    if not page.url.startswith(
-        CHATGPT_URL
-    ):
-
+    if not page.url.startswith("https://chatgpt.com"):
         print(
-            "[CHATGPT] Navigating to:"
-            f" {CHATGPT_URL}"
+            f"[CHATGPT] Navigating to: {CHATGPT_URL}"
         )
 
         await page.goto(
             CHATGPT_URL,
             wait_until="domcontentloaded",
-            timeout=PAGE_LOAD_TIMEOUT,
+            timeout=60000,
         )
 
-    else:
-
-        print(
-            "[CHATGPT] Already on ChatGPT."
-        )
+    # Allow Cloudflare / frontend navigation to settle.
+    await asyncio.sleep(3)
 
     print(
         f"[CHATGPT] URL: {page.url}"
     )
 
-    # --------------------------------------------------------
-    # Network idle
-    # --------------------------------------------------------
+    title = ""
 
     try:
-
-        await page.wait_for_load_state(
-            "domcontentloaded",
-            timeout=PAGE_LOAD_TIMEOUT,
-        )
-
-    except Exception as e:
-
-        print(
-            "[CHATGPT] DOMContentLoaded wait error: "
-            f"{e}"
-        )
-
-        # Give Cloudflare's challenge JavaScript time to
-        # perform its navigation.
-
-        await asyncio.sleep(3)
-
-
-    # --------------------------------------------------------
-    # Page information
-    # --------------------------------------------------------
-
-    title = await get_page_title(
-        page
-    )
+        title = await page.title()
+    except Exception:
+        pass
 
     print(
         f"[CHATGPT] Title: {title!r}"
     )
 
-    print(
-        f"[CHATGPT] URL: {page.url}"
-    )
-
     # --------------------------------------------------------
-    # Browser information
+    # IMPORTANT: check Cloudflare BEFORE browser evaluate
     # --------------------------------------------------------
 
-    await print_browser_information(
-        page
-    )
-
-    # --------------------------------------------------------
-    # Cookies
-    # --------------------------------------------------------
-
-    await print_cookie_information(
-        page
-    )
-
-    # --------------------------------------------------------
-    # Cloudflare
-    # --------------------------------------------------------
-
-    if await detect_cloudflare_challenge(
-        page
-    ):
+    if await detect_cloudflare_challenge(page):
 
         print(
-            "[SECURITY] Cloudflare managed "
-            "challenge detected."
-        )
-
-        print(
-            f"[SECURITY] URL: {page.url}"
-        )
-
-        print(
-            f"[SECURITY] Title: {title!r}"
+            "[SECURITY] Cloudflare challenge detected."
         )
 
         await save_debug_info(
@@ -687,37 +609,16 @@ async def ensure_chatgpt_page(
         )
 
     # --------------------------------------------------------
-    # Wait for actual ChatGPT UI
+    # Now the actual ChatGPT application should exist
     # --------------------------------------------------------
 
-    try:
+    editor = await wait_for_chatgpt(page)
 
-        editor = await wait_for_chatgpt(
-            page
-        )
+    print(
+        "[CHATGPT] ChatGPT interface loaded."
+    )
 
-        print(
-            "[CHATGPT] Interface loaded."
-        )
-
-        return editor
-
-    except Exception as e:
-
-        print(
-            "[CHATGPT] Interface did not load."
-        )
-
-        print(
-            f"[CHATGPT] Error: {e}"
-        )
-
-        await save_debug_info(
-            page,
-            prefix="interface-error",
-        )
-
-        raise
+    return editor
 
 
 # ============================================================
