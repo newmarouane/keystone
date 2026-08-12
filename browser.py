@@ -40,7 +40,7 @@ async def start_browser():
 
     page = await context.new_page()
 
-    return playwright, browser, context, page
+    return playwright, context, page
 
 
 async def create_new_page(context: BrowserContext) -> Page:
