@@ -883,10 +883,7 @@ async def chatgpt_handle_response(
 ) -> str:
 
     try:
-
-        editor = await ensure_chatgpt_page(
-            page
-        )
+        editor = await ensure_chatgpt_page(page)
 
         await submit_prompt(
             page,
@@ -898,9 +895,7 @@ async def chatgpt_handle_response(
             "[CHATGPT] Waiting for response..."
         )
 
-        response = await wait_for_response(
-            page
-        )
+        response = await wait_for_response(page)
 
         print(
             "[CHATGPT] Generation finished."
@@ -910,7 +905,6 @@ async def chatgpt_handle_response(
 
     except Exception as e:
 
-        print()
         print(
             "[CHATGPT] Error while processing request:"
         )
@@ -919,22 +913,16 @@ async def chatgpt_handle_response(
             f"{type(e).__name__}: {e}"
         )
 
-        try:
-
-            await save_debug_info(
-                page,
-                prefix="request-error",
-            )
-
-        except Exception:
-            pass
+        # IMPORTANT:
+        # Do NOT call save_debug_info() here.
+        #
+        # ensure_chatgpt_page() already saves diagnostics
+        # when a Cloudflare challenge is detected.
 
         return (
             "An error occurred while processing "
-            "the request. "
-            "Please try again later."
+            "the ChatGPT request."
         )
-
 
 # ============================================================
 # STREAMING
