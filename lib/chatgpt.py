@@ -122,7 +122,7 @@ async def save_debug_info(
         body_text = await body.inner_text(
             timeout=50000
         )
-
+        print(body_text)
         text_path.write_text(
             body_text,
             encoding="utf-8",
