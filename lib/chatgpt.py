@@ -920,8 +920,7 @@ async def chatgpt_handle_response(
         # when a Cloudflare challenge is detected.
 
         return (
-            "An error occurred while processing "
-            "the ChatGPT request."
+            e
         )
 
 # ============================================================
