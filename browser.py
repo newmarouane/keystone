@@ -1,5 +1,3 @@
-import os
-
 from patchright.async_api import BrowserContext, Page, async_playwright
 
 
@@ -17,26 +15,31 @@ USER_DATA_DIR = os.getenv("BROWSER_PROFILE", "/app/profile")
 
 
 async def start_browser():
+
     playwright = await async_playwright().start()
 
-    context = await playwright.chromium.launch_persistent_context(
-        user_data_dir=USER_DATA_DIR,
+    browser = await playwright.chromium.launch(
         headless=True,
-        locale="en-US",
-        permissions=[
-            "clipboard-read",
-            "clipboard-write",
+        args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--no-first-run",
+            "--no-default-browser-check",
         ],
-        args=CHROME_ARGS,
     )
 
-    page = (
-        context.pages[0]
-        if context.pages
-        else await context.new_page()
+    context = await browser.new_context(
+        viewport={
+            "width": 1280,
+            "height": 800,
+        },
     )
 
-    return playwright, context, page
+    page = await context.new_page()
+
+    return playwright, browser, context, page
 
 
 async def create_new_page(context: BrowserContext) -> Page:
