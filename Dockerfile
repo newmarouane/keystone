@@ -7,10 +7,6 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# ------------------------------------------------------------
-# Chromium system dependencies
-# ------------------------------------------------------------
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-liberation \
@@ -44,35 +40,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# ------------------------------------------------------------
-# Upgrade pip
-# ------------------------------------------------------------
-
 RUN pip install --upgrade pip
-
-# ------------------------------------------------------------
-# Install application dependencies
-# ------------------------------------------------------------
 
 COPY pyproject.toml README.md ./
 
 RUN pip install .
 
-# ------------------------------------------------------------
-# Install Patchright Chromium
-# ------------------------------------------------------------
+COPY . .
 
 RUN patchright install chromium
 
-# ------------------------------------------------------------
-# Copy application
-# ------------------------------------------------------------
-
-COPY . .
-
-# ------------------------------------------------------------
-# Render
-# ------------------------------------------------------------
+RUN mkdir -p /app/debug
 
 EXPOSE 8000
 
