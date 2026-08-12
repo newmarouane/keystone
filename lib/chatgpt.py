@@ -15,11 +15,11 @@ from patchright.async_api import (
 
 CHATGPT_URL = "https://chatgpt.com/"
 
-PAGE_LOAD_TIMEOUT = 60_000
-NETWORK_IDLE_TIMEOUT = 20_000
-EDITOR_TIMEOUT = 60_000
+PAGE_LOAD_TIMEOUT = 600_000
+NETWORK_IDLE_TIMEOUT = 200_000
+EDITOR_TIMEOUT = 600_000
 
-GENERATION_TIMEOUT = 300
+GENERATION_TIMEOUT = 3000
 
 DEBUG_DIR = Path("/app/debug")
 DEBUG_DIR.mkdir(
@@ -120,7 +120,7 @@ async def save_debug_info(
         body = page.locator("body")
 
         body_text = await body.inner_text(
-            timeout=5000
+            timeout=50000
         )
 
         text_path.write_text(
@@ -385,7 +385,7 @@ async def wait_for_chatgpt(
                 ).last
 
                 if await locator.is_visible(
-                    timeout=1000
+                    timeout=10000
                 ):
 
                     print(
@@ -803,7 +803,7 @@ async def get_assistant_text(
 
         return (
             await assistant_message.inner_text(
-                timeout=5000
+                timeout=50000
             )
             or ""
         )
@@ -838,7 +838,7 @@ async def is_chatgpt_generating(
             ).last
 
             if await locator.is_visible(
-                timeout=500
+                timeout=5000
             ):
 
                 return True
