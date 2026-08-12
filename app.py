@@ -11,15 +11,47 @@ import sys
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-Path("/app/debug").mkdir(
+from lib.chatgpt import (
+    chatgpt_handle_response,
+    stream_chatgpt_response,
+)
+
+
+# ============================================================
+# DEBUG DIRECTORY
+# ============================================================
+
+DEBUG_DIR = Path("/app/debug")
+
+DEBUG_DIR.mkdir(
     parents=True,
     exist_ok=True,
 )
+
+
+# ============================================================
+# FASTAPI
+# ============================================================
+
 app = FastAPI()
+
+
+# IMPORTANT:
+#
+# Filesystem:
+#
+#     /app/debug/file.png
+#
+# HTTP:
+#
+#     /debug/file.png
+#
 
 app.mount(
     "/debug",
-    StaticFiles(directory="/app/debug"),
+    StaticFiles(
+        directory=str(DEBUG_DIR)
+    ),
     name="debug",
 )
 if sys.platform == "win32":
