@@ -37,43 +37,47 @@ async def save_debug_info(
     prefix: str = "chatgpt",
 ):
     """
-    Save debugging information.
-
-    Files are stored in:
-
-        /app/debug/
-
-    They should be exposed by FastAPI as:
-
-        /debug/<filename>
+    Save debugging information safely even if the page is
+    navigating/reloading because of a Cloudflare challenge.
     """
 
     timestamp = int(time.time())
 
-    screenshot_path = (
-        DEBUG_DIR /
+    screenshot_path = DEBUG_DIR / (
         f"{prefix}-{timestamp}.png"
     )
 
-    html_path = (
-        DEBUG_DIR /
+    html_path = DEBUG_DIR / (
         f"{prefix}-{timestamp}.html"
     )
 
-    text_path = (
-        DEBUG_DIR /
+    text_path = DEBUG_DIR / (
         f"{prefix}-{timestamp}.txt"
     )
 
-    # --------------------------------------------------------
+    # ========================================================
+    # Current URL
+    # ========================================================
+
+    try:
+        current_url = page.url
+    except Exception:
+        current_url = ""
+
+    print(
+        f"[DEBUG] URL: {current_url}"
+    )
+
+    # ========================================================
     # Screenshot
-    # --------------------------------------------------------
+    # ========================================================
 
     try:
 
         await page.screenshot(
             path=str(screenshot_path),
             full_page=True,
+            timeout=10000,
         )
 
         print(
@@ -87,14 +91,14 @@ async def save_debug_info(
             f"[DEBUG] Could not save screenshot: {e}"
         )
 
-    # --------------------------------------------------------
+    # ========================================================
     # HTML
-    # --------------------------------------------------------
+    # ========================================================
 
     try:
 
         html = await page.content()
-        print(html)
+
         html_path.write_text(
             html,
             encoding="utf-8",
@@ -111,16 +115,16 @@ async def save_debug_info(
             f"[DEBUG] Could not save HTML: {e}"
         )
 
-    # --------------------------------------------------------
-    # Body text
-    # --------------------------------------------------------
+    # ========================================================
+    # BODY TEXT
+    # ========================================================
 
     try:
 
-        body = page.locator("body")
-
-        body_text = await body.inner_text(
-            timeout=50000
+        body_text = await page.locator(
+            "body"
+        ).inner_text(
+            timeout=5000
         )
         print(body_text)
         text_path.write_text(
@@ -147,9 +151,9 @@ async def save_debug_info(
             f"[DEBUG] Could not save body text: {e}"
         )
 
-    # --------------------------------------------------------
-    # Browser information
-    # --------------------------------------------------------
+    # ========================================================
+    # BROWSER INFORMATION
+    # ========================================================
 
     try:
 
@@ -183,9 +187,35 @@ async def save_debug_info(
 
     except Exception as e:
 
+        # This is expected if Cloudflare has just
+        # navigated/reloaded the page.
+
         print(
-            f"[DEBUG] Could not get browser information: {e}"
+            "[DEBUG] Could not get browser information: "
+            f"{e}"
         )
+
+    # ========================================================
+    # PAGE TITLE
+    # ========================================================
+
+    try:
+
+        title = await page.title()
+
+        print(
+            f"[DEBUG] Page title: {title!r}"
+        )
+
+    except Exception as e:
+
+        print(
+            f"[DEBUG] Could not get page title: {e}"
+        )
+
+    print(
+        "[DEBUG] Diagnostics completed."
+    )
 
 
 # ============================================================
@@ -463,11 +493,16 @@ async def print_browser_information(
             )
         )
 
+        return information
+
     except Exception as e:
 
         print(
-            f"[BROWSER] Information error: {e}"
+            "[BROWSER] Could not get browser information: "
+            f"{type(e).__name__}: {e}"
         )
+
+        return None
 
 
 # ============================================================
@@ -570,28 +605,22 @@ async def ensure_chatgpt_page(
     try:
 
         await page.wait_for_load_state(
-            "networkidle",
-            timeout=NETWORK_IDLE_TIMEOUT,
+            "domcontentloaded",
+            timeout=PAGE_LOAD_TIMEOUT,
         )
+
+    except Exception as e:
 
         print(
-            "[CHATGPT] Network idle."
+            "[CHATGPT] DOMContentLoaded wait error: "
+            f"{e}"
         )
 
-    except PlaywrightTimeoutError:
+        # Give Cloudflare's challenge JavaScript time to
+        # perform its navigation.
 
-        print(
-            "[CHATGPT] Network idle timeout. "
-            "Continuing."
-        )
+        await asyncio.sleep(3)
 
-    # --------------------------------------------------------
-    # Allow frontend JS to initialize
-    # --------------------------------------------------------
-
-    await asyncio.sleep(
-        2
-    )
 
     # --------------------------------------------------------
     # Page information
