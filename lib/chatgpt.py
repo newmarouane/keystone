@@ -904,7 +904,7 @@ async def chatgpt_handle_response(
         return response
 
     except Exception as e:
-
+        print(e)
         print(
             "[CHATGPT] Error while processing request:"
         )
