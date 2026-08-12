@@ -89,7 +89,7 @@ async def save_debug_info(
     try:
 
         html = await page.content()
-
+        print(html)
         html_path.write_text(
             html,
             encoding="utf-8",
