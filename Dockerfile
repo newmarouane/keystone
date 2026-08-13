@@ -29,7 +29,9 @@ COPY package.json pnpm-lock.yaml ./
 COPY scripts/ ./scripts/
 COPY patches/ ./patches/
 
-RUN npm install -g pnpm &&  pnpm approve-builds && pnpm install --frozen-lockfile
+RUN npm install -g pnpm
+RUN pnpm approve-builds
+RUN pnpm install --frozen-lockfile
 
 # 3. 复制源码并初始化
 COPY . .
