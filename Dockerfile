@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y \
     libdbus-glib-1-2 \
     python3 \
     build-essential \
+    make \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. 复制依赖文件、脚本和补丁目录，然后安装
