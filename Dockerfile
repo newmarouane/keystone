@@ -30,8 +30,8 @@ COPY scripts/ ./scripts/
 COPY patches/ ./patches/
 
 RUN npm install -g pnpm
-RUN pnpm approve-builds
-#RUN pnpm install --frozen-lockfile
+#RUN pnpm approve-builds
+RUN pnpm install --frozen-lockfile
 
 # 3. 复制源码并初始化
 COPY . .
