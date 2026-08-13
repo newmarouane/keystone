@@ -29,6 +29,7 @@ COPY package.json pnpm-lock.yaml ./
 COPY scripts/ ./scripts/
 COPY patches/ ./patches/
 
+RUN npm install
 RUN npm install -g pnpm
 #RUN pnpm approve-builds
 #RUN pnpm install --frozen-lockfile
