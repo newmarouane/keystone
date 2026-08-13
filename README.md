@@ -1,187 +1,315 @@
-# GhostGPT 👻
+# WebAI2API
 
-> **GhostGPT** is a stealth, unauthenticated ChatGPT API bridge built with FastAPI and [Patchright](https://github.com/kaliiiiiiiiii/patchright-python) (an anti-detection Playwright fork). Operate ChatGPT quietly in the background without needing an API key!
+简体中文 | [English](README_EN.md)
 
----
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/296a518e-c42b-4e39-8ff6-9b4381ed4f6e" width="49%" />
+  <img src="https://github.com/user-attachments/assets/bfa30ece-6947-4f18-b2c9-ccc8087b7e89" width="49%" />
+</p>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/5b15ebd2-7593-4f0e-8561-83d6ba5d88ab" width="49%" />
+  <img src="https://github.com/user-attachments/assets/53deea29-4071-4a07-8a61-211761c5f2f7" width="49%" />
+</p>
 
-## 🚀 Features
+## 📑 目录
 
-- 👻 **Ghost Engine**: Operates silently in the background via automated browser tabs without API keys or login.
-- ⚡ **Real-Time SSE Streaming**: Stream responses chunk-by-chunk using Server-Sent Events (`/stream-ask`).
-- 🍪 **Session Persistence**: Keeps track of multi-turn chat sessions automatically using HTTP cookies.
-- 🥷 **Stealth Anti-Bot**: Powered by `patchright` to bypass automated browser detection.
-
----
-
-## 📋 Prerequisites
-
-- Python **3.13+** (or 3.10+)
-- [`uv`](https://github.com/astral-sh/uv) *(recommended)* or standard `pip`
-
----
-
-## 🏃 How to Run GhostGPT
-
-### Option A: Using `uv` (Recommended)
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/GhostGPT.git
-   cd GhostGPT
-   ```
-
-2. **Sync dependencies & install Patchright Chromium browser**:
-   ```bash
-   uv sync
-   uv run patchright install chromium
-   ```
-
-3. **Launch the server**:
-   ```bash
-   uv run uvicorn app:app --reload --port 8000
-   ```
+- [快速部署](#-快速部署)
+- [快速开始](#-快速开始)
+- [使用方法](#-使用方法)
+- [API 接口](#-api-接口)
+- [设备配置参考](#-设备配置参考)
 
 ---
 
-### Option B: Using standard Python (`pip` + `venv`)
+## 📝 项目简介
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/GhostGPT.git
-   cd GhostGPT
-   ```
+**WebAI2API** 是一个基于 **Camoufox (Playwright)** 的网页版 AI 服务转通用 API 的工具。通过模拟人类操作与 LMArena、Gemini 等网站交互, 提供兼容 **OpenAI 格式** 的接口服务, 同时支持 **多窗口并发** 与 **多账号管理**(浏览器实例数据隔离)。
 
-2. **Create and activate a virtual environment**:
-   - **Windows (PowerShell/CMD)**:
-     ```powershell
-     python -m venv .venv
-     .venv\Scripts\activate
-     ```
-   - **Linux / macOS**:
-     ```bash
-     python3 -m venv .venv
-     source .venv/bin/activate
-     ```
+### ✨ 主要特性
 
-3. **Install dependencies and Chromium browser**:
-   ```bash
-   pip install fastapi patchright uvicorn
-   patchright install chromium
-   ```
+- 🤖 **拟人交互**: 模拟人类打字与鼠标轨迹, 通过特征伪装规避自动化检测
+- 🔄 **接口兼容**: 提供标准 OpenAI 格式接口, 支持流式响应与心跳保活
+- 🚀 **并发隔离**: 支持多窗口并发执行, 可配置独立代理,实现多账号浏览器实例级数据隔离
+- 🛡️ **稳定防护**: 内置任务队列、负载均衡、故障转移、错误重试等基础功能
+- 🎨 **网页管理**: 提供可视化管理界面, 支持实时日志查看、VNC 连接、适配器管理等
 
-4. **Launch the server**:
-   ```bash
-   uvicorn app:app --reload --port 8000
-   ```
+### 📋 支持列表
 
----
+| 网站名称 | 文本生成 | 图片生成 | 视频生成 |
+| :--- | :---: | :---: | :---: | 
+| [**LMArena**](https://lmarena.ai/) | ✅ | ✅ | 🚫 |
+| [**Gemini Enterprise Business**](https://business.gemini.google/) | ✅ | ✅ | ✅ |
+| [**Nano Banana Free**](https://nanobananafree.ai/) | 🚫 | ✅ | 🚫 |
+| [**zAI**](https://zai.is/) | ✅ | ✅ | 🚫 |
+| [**Google Gemini**](https://gemini.google.com/) | ✅ | ✅💧 | ✅💧 | 
+| [**ZenMux**](https://zenmux.ai/) | ✅ | ❌ | 🚫 | 
+| [**ChatGPT**](https://chatgpt.com/) | ✅ | ✅ | 🚫 | 
+| [**DeepSeek**](https://chat.deepseek.com/) | ✅ | 🚫 | 🚫 | 
+| [**Sora**](https://sora.chatgpt.com/) | 🚫 | 🚫 | ✅💧 | 
+| [**Google Flow**](https://labs.google/fx/zh/tools/flow) | 🚫 | ✅ | ❌ | 
+| [**豆包**](https://www.doubao.com/) | ✅ | ✅ | ❌ | 
+| 待续... | - | - | - | 
 
-### 🌐 Accessing the API & Interactive Docs
-
-Once running, the server initializes a stealth Chromium instance in the background.
-
-- **API Server**: `http://localhost:8000`
-- **Interactive Swagger Docs**: Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to test endpoints directly from the Web UI!
+> [!NOTE]
+> **获取完整模型列表**: 通过 `GET /v1/models` 接口查看当前配置下所有可用模型及其详细信息。
+> 
+> ✅目前支持；❌目前不支持，但未来可能会支持；🚫网站不支持, 未来是否在支持看网站具体情况；💧结果带水印且无法去除；
 
 ---
 
-### 🧪 Running Standalone Test Scripts
+## 🚀 快速部署
 
-You can also run the standalone automation test scripts located in the `testing/` directory:
+本项目支持 **源码直接运行** 和 **Docker 容器化部署** 两种方式。
 
+### 📋 环境要求
+
+- **Node.js**: v20.0.0+ (ABI 115+)
+- **操作系统**: Windows / Linux / macOS
+- **核心依赖**: Camoufox (安装过程中自动获取)
+
+### 🛠️ 方式一:手动部署
+
+1. **安装与配置**
+   ```bash
+   # 1. 安装 NPM 依赖
+   pnpm install
+
+   # 2. 安装浏览器等预编译依赖
+   # ⚠️ 该脚本需连接 GitHub 下载资源。若网络受限，请使用代理
+   npm run init 
+   # 使用代理
+   # 直接使用 -proxy 可交互式输入代理配置
+   npm run init -- -proxy=http://username:passwd@host:port
+
+   # 3. Linux 依赖安装
+   # 其他发行版请前往文档中心查找或者自行搜索
+   apt install -y xvfb x11vnc libgtk-3-0 libx11-xcb1 libasound2
+   
+   ```
+
+2. **启动服务**
+   ```bash
+   # 标准启动
+   npm start
+
+   # Linux 系统 - 虚拟显示启动
+   npm start -- -xvfb -vnc
+
+   # 登录模式 (会临时强行禁用无头模式和自动化)
+   npm start -- -login (-xvfb -vnc)
+   ```
+
+### 🐳 方式二:Docker 部署
+
+> [!WARNING]
+> **安全提醒**: 
+> - Docker 镜像默认开启虚拟显示器 (Xvfb) 和 VNC 服务
+> - 可通过 WebUI 的虚拟显示器板块连接
+> - **WebUI 传输过程未加密, 公网环境请使用 SSH 隧道或 HTTPS**
+
+**Docker CLI 启动**
 ```bash
-# Test ChatGPT browser automation directly
-python testing/main.py
+docker run -d --name webai-2api \
+  -p 3000:3000 \
+  -v "$(pwd)/data:/app/data" \
+  --shm-size=2gb \
+  foxhui/webai-2api:latest
+```
 
-# Test Gemini browser automation directly
-python testing/gemini.py
+**Docker Compose 启动**
+```bash
+docker-compose up -d
 ```
 
 ---
 
-## 📡 API Reference
+## ⚡ 快速开始
 
-### 1. `POST /ask` (Standard JSON Response)
-Sends a prompt to ChatGPT and returns the complete answer in a single JSON payload.
+### 1. 调整配置文件
 
-- **URL**: `/ask`
-- **Method**: `POST`
-- **Headers**: `Content-Type: application/json`
-- **Body**:
-  ```json
-  {
-    "question": "Explain quantum computing in simple terms.",
-    "newContext": false
-  }
-  ```
+程序初次运行会从`config.example.yaml`复制配置文件到`data/config.yaml`
 
-#### Example `curl`:
+**配置文件的生效需要重启程序！**
+
+```yaml
+server:
+  # 监听端口
+  port: 3000
+  # 鉴权 API Token (可使用 npm run genkey 生成)
+  # 该配置会对 API 接口和 WebUI 生效
+  auth: sk-change-me-to-your-secure-key
+```
+
+> [!TIP]
+> **完整配置说明**: 请参考 [config.example.yaml](config.example.yaml) 文件中的详细注释,或访问 [WebAI2API 文档中心](https://foxhui.github.io/WebAI2API/) 查看完整配置指南。
+
+### 2. 访问 Web 管理界面
+
+服务启动后, 打开浏览器访问:
+```
+http://localhost:3000
+```
+
+> [!TIP]
+> **远程访问**: 将 `localhost` 替换为服务器 IP 地址即可远程访问。
+> **API Token**: 配置文件中的`auth`所配置的鉴权密钥。
+> **安全建议**: 公网环境建议使用 Nginx/Caddy 配置 HTTPS 或通过 SSH 隧道访问。
+
+### 3. 初始化账号登录
+
+> [!IMPORTANT]
+> **首次使用必须完成以下初始化步骤**:
+
+1. **连接虚拟显示器**:
+   - Linux/Docker: 在 WebUI 的"虚拟显示器"板块连接
+   - Windows: 直接在弹出的浏览器窗口中操作
+
+2. **完成账号登录**:
+   - 手动登录所需的 AI 网站账号 (账号要求可进入 WebUI 的适配器管理中查看)
+   - 在输入框发送任意消息, 触发并完成人机验证 (如需要)
+   - 同意服务条款或者新手指引 (如需要)
+   - 确保不再有初次使用相关内容的阻拦
+
+3. **SSH 隧道连接示例**(公网服务器推荐):
+   ```bash
+   # 在本地终端运行,将服务器的 WebUI 映射到本地
+   ssh -L 3000:127.0.0.1:3000 root@服务器IP
+   
+   # 然后在本地访问
+   # WebUI: http://localhost:3000
+   ```
+
+---
+
+## 📖 使用方法
+
+### 运行模式说明
+
+> [!NOTE]
+> **关于有头/无头模式**:
+> - **有头模式**(默认): 显示浏览器窗口, 便于调试和人工干预
+> - **无头模式**: 后台运行, 节省资源但无法查看浏览器界面, 且可能会被网站检测
+> 
+> **建议**: 为降低风控, **强烈建议长期保持非无头模式运行**(或使用虚拟显示器 Xvfb)。
+
+---
+
+## 🔌 API 接口
+
+> [!TIP]
+> **详细文档**: 请访问 [WebAI2API 文档中心](https://foxhui.github.io/WebAI2API/) 获取更全面的配置指南与接口说明。
+
+### 1. OpenAI 兼容接口
+
+> [!WARNING]
+> **并发限制与流式保活建议**
+> 
+> 本项目通过模拟真实浏览器操作实现, 处理过程根据实际情况时间可能有所变化, 当积压的任务超过设置的数量时会直接拒绝非流式模式的请求。
+> 
+> **💡 强烈建议开启流式模式**: 服务器将发送保活心跳包, 可无限排队避免超时。
+
+#### 文本对话
+
+**端点**: `POST /v1/chat/completions`
+
+**请求示例**:
 ```bash
-curl -X POST "http://localhost:8000/ask" \
+curl http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"question": "Hello! Who are you?"}'
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d '{
+    "model": "gemini-3-pro",
+    "messages": [
+      {"role": "user", "content": "你好,请介绍一下你自己"}
+    ],
+    "stream": true
+  }'
 ```
 
-#### Example Response:
-```json
-{
-  "response": "I'm ChatGPT, a large language model trained by OpenAI..."
-}
-```
+#### 多模态请求(文生图/图生图)
 
----
+**支持的图片格式**:
+- **格式**: PNG, JPEG, GIF, WebP
+- **数量**: 最大 10 张(具体限制因网站而异)
+- **数据格式**: 必须使用 Base64 Data URL 格式
+- **自动转换**: 服务器会自动将所有图片转换为 JPG 格式以保证兼容性
 
-### 2. `POST /stream-ask` (Streaming SSE)
-Streams the ChatGPT response in real-time as a `text/event-stream`.
+#### 参数说明
 
-- **URL**: `/stream-ask`
-- **Method**: `POST`
-- **Headers**: `Content-Type: application/json`
-- **Body**:
-  ```json
-  {
-    "question": "Write a short poem about coding.",
-    "newContext": false
-  }
-  ```
+| 参数 | 类型 | 必填 | 说明 |
+| :--- | :--- | :---: | :--- |
+| `model` | string | ✅ | 模型名称, 可通过 `/v1/models` 获取可用列表 |
+| `stream` | boolean | 推荐 | 是否开启流式响应, 包含心跳保活机制 |
 
-#### Example `curl`:
+> [!NOTE]
+> **关于流式保活 (Heartbeat)**
+>
+> 为防止长连接超时, 系统提供两种保活模式 (可在配置中切换):
+> 1. **Comment 模式 (默认/推荐)**: 发送 `:keepalive` 注释, 符合 SSE 标准,兼容性最好
+> 2. **Content 模式**: 发送空内容的 data 包, 仅用于必须收到 JSON 数据才重置超时的特殊客户端
+
+### 2. 获取模型列表
+
+**端点**: `GET /v1/models`
+
+**请求示例**:
 ```bash
-curl -N -X POST "http://localhost:8000/stream-ask" \
-  -H "Content-Type: application/json" \
-  -d '{"question": "Tell me a joke."}'
+curl http://localhost:3000/v1/models \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-#### Stream Output Format:
-```text
-data: {"text": "Why do programmers..."}
+### 3. 获取 Cookies
 
-data: {"text": "Why do programmers prefer dark mode?"}
+**功能说明**: 利用本项目的自动续登功能获取最新 Cookie 供其他工具使用。
 
-data: [DONE]
-```
+**端点**: `GET /v1/cookies`
 
----
+**参数**:
+- `name` (可选): 浏览器实例名称,默认为 `default`
+- `domain` (可选): 过滤指定域名的 Cookie
 
-## 📂 Project Structure
-
-```text
-GhostGPT/
-├── app.py                 # FastAPI server & session management
-├── browser.py             # Patchright browser engine setup
-├── lib/
-│   └── chatgpt.py         # ChatGPT DOM automation & response stream parsers
-├── testing/               # Standalone test scripts (ChatGPT, Gemini)
-│   ├── main.py            # ChatGPT standalone automation test
-│   ├── gemini.py          # Gemini standalone automation test
-│   └── test.py            # Event loop test utility
-├── profile/               # Persistent browser session storage (git-ignored)
-├── pyproject.toml         # Python dependencies & config
-└── README.md              # Documentation
+**请求示例**:
+```bash
+# 获取指定实例和域名的 Cookie
+curl "http://localhost:3000/v1/cookies?name=browser_default&domain=lmarena.ai" \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ---
 
-## ⚠️ Disclaimer
+## 📊 设备配置参考
 
-GhostGPT is built for educational, research, and testing purposes only. It relies on web browser automation and is not affiliated with or endorsed by OpenAI.
+| 资源 | 最低配置 | 推荐配置 (单实例) | 推荐配置 (多实例) |
+| :--- | :--- | :--- | :--- |
+| **CPU** | 1 核 | 2 核及以上 | 2 核及以上 |
+| **内存** | 1 GB | 2 GB 及以上 | 4 GB 及以上 |
+| **磁盘** | 2 GB 可用空间 | 5 GB 及以上 | 7 GB 及以上 |
+
+**实测环境表现** (均为单浏览器实例):
+- **Oracle 免费机** (1C1G, Debian 12): 资源紧张, 比较卡顿, 仅供尝鲜或轻度使用
+- **阿里云轻量云** (2C2G, Debian 11): 运行流畅但实例也会卡顿, 项目开发测试所用机型
+
+---
+
+## 📄 许可证和免责声明
+
+本项目采用 [MIT License](LICENSE) 开源。
+
+> [!CAUTION]
+> **免责声明**
+> 
+> 本项目仅供学习交流使用。如果因使用该项目造成的任何后果 (包括但不限于账号被禁用),作者和项目均不承担任何责任。请遵守相关网站和服务的使用条款 (ToS),并做好相关数据的备份工作。
+
+---
+
+## 📋 更新日志
+
+查看完整的版本历史和更新内容, 请访问 [CHANGELOG.md](CHANGELOG.md)。
+
+### 🕰️ 历史版本说明
+
+本项目已从 Puppeteer 迁移至 Camoufox, 以应对日益复杂的反机器人检测机制。基于 Puppeteer 的旧版本代码已归档至 `puppeteer-edition` 分支, 仅作留存, **不再提供更新与维护**。
+
+---
+
+**感谢 LMArena、Gemini 等网站提供 AI 服务!** 🎉

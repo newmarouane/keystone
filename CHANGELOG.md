@@ -1,417 +1,512 @@
 # Changelog
 
-## v3.4.0 (TBA)
+All notable changes to this project will be documented in this file.
 
-* Add nodriver support
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v3.3.19 (2024/05/23)
-* Fix occasional headless issue on Linux when set to "false"
+## [3.6.7] - 2026-04-24
 
-## v3.3.18 (2024/05/20)
+### 🐛 Fixed
+- **适配器**
+  - 修复 ChatGPT 缺少系统提示词的问题
+  - 尝试修复 ChatGPT 选择模型的问题 （目前应该是灰度测试，有些账号界面不一样，并且作者没有会员账号仅为猜测修复）
 
-* Fix LANG ENV for Linux
-* Fix Chrome v124+ not closing on Windows. Thanks @RileyXX
+### ✨ Added
+- **WebUI**
+  - Gemini 和 ChatGPT 的临时对话模式开关（现可以在适配器设置中单独开关）
 
-## v3.3.17 (2024/04/09)
+- **服务器**
+  - 支持开启图片生成结果使用 Markdown 格式返回
 
-* Fix file descriptor leak in service on quit(). Thanks @zkulis
+## [3.6.6] - 2026-04-12
 
-## v3.3.16 (2024/02/28)
+### 🐛 Fixed
+- **WebUI**
+  - 修复媒体文件服务接口未拼接目录前缀导致图片无法预览的问题 (ref #70)
+  - 历史模块路径改为绝对路径，避免非项目根目录启动时路径解析失败
 
-* Fix of the subprocess.STARTUPINFO() call. Thanks @ceconelo
-* Add FreeBSD support. Thanks @Asthowen
-* Use headless configuration properly. Thanks @hashworks
+### ✨ Added
+- **WebUI**
+  - 请求历史 Prompt 列支持点击弹窗预览完整内容
+  - 预览弹窗新增「复制全文」按钮
+  - 重发失败记录时自动删除旧的失败条目
 
-## v3.3.15 (2024/02/20)
+## [3.6.5] - 2026-04-09
 
-* Fix looping challenges
+### ✨ Added
+- **适配器**
+  - ChatGPT 和 Gemini 改用临时对话模式防止污染历史列表
 
-## v3.3.14-hotfix2 (2024/02/17)
+### 🐛 Fixed
+- **适配器**
+  - 修复 ChatGPT 在 LaTeX 输出下可能会导致截断的问题
 
-* Hotfix 2 - bad Chromium build, instances failed to terminate
+## [3.6.5] - 2026-04-09
 
-## v3.3.14-hotfix (2024/02/17)
+### ✨ Added
+- **适配器**
+  - DeepSeek 支持专业模式
 
-* Hotfix for Linux build - some Chrome files no longer exist
+### 🐛 Fixed
+- **适配器**
+  - 修复豆包因前端更新导致点击失效
+  - 修复 ChatGPT 无法发送提示词的问题
 
-## v3.3.14 (2024/02/17)
+## [3.6.5] - 2026-04-09
 
-* Update Chrome downloads. Thanks @opemvbs
+### 🔄 Changed
+- **适配器**
+  - 更新 Arena 的模型列表
+  - 更新 ChatGPT 文本生成的模型列表
 
-## v3.3.13 (2024/01/07)
+## [3.6.4] - 2026-04-07
 
-* Fix too many open files error
+### ✨ Added
+- **适配器**
+  - 支持 thinking/reasoning 提取与传递（豆包、Gemini 等）
+  - 智能错误检测与 retryable 标记传播
+  - Gemini 图片生成返回全尺寸原图
+- **API**
+  - buildChatCompletion/buildChatCompletionChunk 支持 reasoning_content 透传
 
-## v3.3.12 (2023/12/15)
+### 🐛 Fixed
+- **适配器**
+  - 修复豆包图片适配器 SSE 解析失败的问题（适配三层嵌套 JSON 格式）
+  - 修复豆包文本适配器模型选择菜单偶尔不弹出的问题（增加重试逻辑）
+  - 修复 Playwright TimeoutError 错误提示不准确的问题（改为页面操作超时）
+  - 新增 CLICK_TIMEOUT 错误归一化处理
+  - 修复 LMArena 域名更新为 arena.ai
 
-* Fix looping challenges and invalid cookies
+## [3.6.3] - 2025-04-05
 
-## v3.3.11 (2023/12/11)
+### 🐛 Fixed
+- **适配器**
+  - 修复 Gemini 文本适配器遇到长提示词的时候无法选择模型的问题
+  - 修复豆包上传图片无法点击的问题
 
-* Update UC 3.5.4 & Selenium 4.15.2. Thanks @txtsd
+## [3.6.2] - 2025-03-31
 
-## v3.3.10 (2023/11/14)
+### ✨ Added
+- **适配器**
+  - 豆包适配器兼容简体、繁体中文界面
 
-* Add LANG ENV - resolves issues with YGGtorrent
+### 🔄 Changed
+- **适配器**
+  - 更新豆包图片生成模型 ID
 
-## v3.3.9 (2023/11/13)
+## [3.6.1] - 2025-03-28
 
-* Fix for Docker build, capture TypeError
+### ✨ Added
+- 图片下载重试机制（指数退避）
+- 请求历史记录（SQLite 存储）
+- WebUI 请求模型页面
 
-## v3.3.8 (2023/11/13)
+## [3.6.0] - 2026-03-26
 
-* Fix headless=true for Chrome 117+. Thanks @NabiKAZ
-* Support running Chrome 119 from source. Thanks @koleg and @Chris7X
-* Fix "OSError: [WinError 6] The handle is invalid" on exit. Thanks @enesgorkemgenc
+### 🐛 Fixed
+- **适配器**
+  - 再次修复豆包适配器无法点击选择模型的问题
+  - 修复豆包超时时间跟随配置文件
 
-## v3.3.7 (2023/11/05)
+### 🔄 Changed
+- **浏览器**
+  - 回滚互斥锁机制，不再使用互斥锁，这是一个错误的修复
 
-* Bump to rebuild. Thanks @JoachimDorchies
+## [3.5.9] - 2026-03-25
 
-## v3.3.6 (2023/09/15)
+### 🐛 Fixed
+- **适配器**
+  - 尝试修复同实例多窗口时出现点击超时的问题
+  - 修复 Gemini 文本适配器不选择模型的问题
+  - 修正 Gemini 文本适配器的模型 ID
 
-* Update checkbox selector, again
+## [3.5.8] - 2026-03-22
 
-## v3.3.5 (2023/09/13)
+### ✨ Added
+- **适配器**
+  - 为图片生成结果下载单独提供重试机制以及相关设置
+- **WebUI**
+  - 增加批量操作实例设置代理或者删除
 
-* Change checkbox selector, support languages other than English
+### 🐛 Fixed
+- **适配器**
+  - 修复豆包适配器无法点击选择模型的问题
 
-## v3.3.4 (2023/09/02)
+## [3.5.7] - 2026-03-21
 
-* Update checkbox selector
+### 🔄 Changed
+- **浏览器**
+  - 扩展拟人点击策略并增强坐标安全性
 
-## v3.3.3 (2023/08/31)
+## [3.5.6] - 2026-03-20
 
-* Update undetected_chromedriver to v3.5.3
+### 🐛 Fixed
+- **适配器**
+  - 修复 Gemini 适配器可能会点不到发送按钮的问题
 
-## v3.3.2 (2023/08/03)
+## [3.5.6] - 2026-03-20
 
-* Fix URL domain in Prometheus exporter
+### ✨ Added
+- **豆包**
+  - 增加豆包 Pro 模型的支持
 
-## v3.3.1 (2023/08/03)
+### 🐛 Fixed
+- **适配器**
+  - 修复豆包文本被截断的问题
 
-* Fix for Cloudflare verify checkbox
-* Fix HEADLESS=false in Windows binary
-* Fix Prometheus exporter for management and health endpoints
-* Remove misleading stack trace when the verify checkbox is not found
-* Revert "Update base Docker image to Debian Bookworm" #849
-* Revert "Install Chromium 115 from Debian testing" #849
+## [3.5.5] - 2026-03-05
 
-## v3.3.0 (2023/08/02)
+### ✨ Added
+- **自定义**
+  - 增加自定义生成等待超时时间
 
-* Fix for new Cloudflare detection. Thanks @cedric-bour for #845
-* Add support for proxy authentication username/password. Thanks @jacobprice808	for #807
-* Implement Prometheus metrics
-* Fix Chromium Driver for Chrome / Chromium version > 114
-* Use Chromium 115 in binary packages (Windows and Linux)
-* Install Chromium 115 from Debian testing (Docker)
-* Update base Docker image to Debian Bookworm
-* Update Selenium 4.11.2
-* Update pyinstaller 5.13.0
-* Add more traces in build_package.py
+### 🐛 Fixed
+- **适配器**
+  - 修复 ChatGPT 文本适配器响应被截断的问题
 
-## v3.2.2 (2023/07/16)
 
-* Workaround for updated 'verify you are human' check
+## [3.5.4] - 2026-02-27
 
-## v3.2.1 (2023/06/10)
+### 🔄 Changed
+- **适配器**
+  - 更新 LMArena 模型列表
 
-* Kill dead Chrome processes in Windows
-* Fix Chrome GL erros in ASUSTOR NAS
+## [3.5.4] - 2026-02-22
 
-## v3.2.0 (2023/05/23)
+### 🐛 Fixed
+- **适配器**
+  - 修复 Gemini 无法点击创建图片按钮的问题
 
-* Support "proxy" param in requests and sessions
-* Support "cookies" param in requests
-* Fix Chromium exec permissions in Linux package
-* Update Python dependencies
+## [3.5.3] - 2026-02-16
 
-## v3.1.2 (2023/04/02)
+### 🐛 Fixed
+- **适配器**
+  - 修复 DeepSeek 文本生成适配器因接口格式更新导致无法获取生成结果
+  - 修复 豆包 适配器图片上传逻辑更改导致上传进度验证失败的问题
 
-* Fix headless mode in macOS
-* Remove redundant artifact from Windows binary package
-* Bump Selenium dependency
+## [3.5.2] - 2026-02-10
 
-## v3.1.1 (2023/03/25)
+### 🐛 Fixed
+- **适配器**
+  - 修复 Gemini 图片生成适配器因前端更新导致无法点击 Create images 按钮的问题
+  - 修复 Gemini 图片生成适配器因前端更新导致无法点击上传图片按钮的问题
+  - 更新 LMArena 模型列表
 
-* Distribute binary executables in compressed package
-* Add icon for binary executable
-* Include information about supported architectures in the readme
-* Check Python version on start
+## [3.5.1] - 2026-01-24
 
-## v3.1.0 (2023/03/20)
+### ✨ Added
+- **WebUI**
+  - 增加日志等级的设置
 
-* Build binaries for Linux x64 and Windows x64
-* Sessions with auto-creation on fetch request and TTL
-* Fix error trace: Crash Reports/pending No such file or directory
-* Fix Waitress server error with asyncore_use_poll=true
-* Attempt to fix Docker ARM32 build
-* Print platform information on start up
-* Add Fairlane challenge selector
-* Update DDOS-GUARD title
-* Update dependencies
+### 🐛 Fixed
+- **代理**
+  - 修复无需鉴权的 Socks5 代理无法使用的问题
 
-## v3.0.4 (2023/03/07)
+## [3.5.0] - 2026-01-23
 
-* Click on the Cloudflare's 'Verify you are human' button if necessary
+### ✨ Added
+- **鼠标轨迹**
+  - 增加三种鼠标轨迹选择（使用项目维护的、使用 Camoufox 内置、不适用拟人轨迹）
 
-## v3.0.3 (2023/03/06)
+### 🐛 Fixed
+- **Token 留空问题**
+  - 修复 WebUI 留空Token后无法重启的问题（允许 Token 留空）
 
-* Update undetected_chromedriver version to 3.4.6
+### 🔄 Changed
+- **鼠标轨迹**
+  - 增快鼠标移动速度
 
-## v3.0.2 (2023/01/08)
+### ❌ Removed
+- **热门模型ID**
+  - 竞技场删除了 gemini-3-pro-image-preview-2k，因此项目同步删除
 
-* Detect Cloudflare blocked access
-* Check Chrome / Chromium web browser is installed correctly
+## [3.4.9] - 2026-01-22
 
-## v3.0.1 (2023/01/06)
+### 🔄 Changed
+- **超时优化**
+  - 等待生成结果的超时时间不再一刀切，根据上游 SEE 动态重置超时计时器
 
-* Kill Chromium processes properly to avoid defunct/zombie processes
-* Update undetected-chromedriver
-* Disable Zygote sandbox in Chromium browser
-* Add more selectors to detect blocked access
-* Include procps (ps), curl and vim packages in the Docker image
+### 🐛 Fixed
+- **LMA 超时问题**
+  - 修复 LMArena 因模型选择界面更新导致的点击超时
+- **Flow 图片上传**
+  - 修复 Google Flow 因历史上传的图片过多导致上传按钮被顶到不可见区域造成点击超时
+- **提示词输入**
+  - 长提示词粘贴之前模拟输入时将回车当换行符使用导致误触发送提示词
 
-## v3.0.0 (2023/01/04)
+## [3.4.8] - 2026-01-19
 
-* This is the first release of FlareSolverr v3. There are some breaking changes
-* Docker images for linux/386, linux/amd64, linux/arm/v7 and linux/arm64/v8
-* Replaced Firefox with Chrome
-* Replaced NodeJS / Typescript with Python
-* Replaced Puppeter with Selenium
-* No binaries for Linux / Windows. You have to use the Docker image or install from Source code
-* No proxy support
-* No session support
+### 🔄 Changed
+- **操作流程**
+  - 操作完成后不再模拟移开鼠标的步骤，加快响应速度减少故障概率
 
-## v2.2.10 (2022/10/22)
+## [3.4.8] - 2026-01-18
 
-* Detect DDoS-Guard through title content
+### 🔄 Changed
+- **崩溃重启**
+  - 非登录模式下浏览器崩溃或者被关闭时不导致项目退出而是重启
 
-## v2.2.9 (2022/09/25)
+## [3.4.7] - 2026-01-14
 
-* Detect Cloudflare Access Denied
-* Commit the complete changelog
+### ✨ Added
+- **CSS注入**
+  - 增加 CSS 注入，支持禁用动画，禁用模糊滤镜，降低字体渲染精度
 
-## v2.2.8 (2022/09/17)
+### 🔄 Changed
+- **超时优化**
+  - 增长 Google Flow 适配器的控件等待超时时间，防止在低配设备上因操作过慢而超时
 
-* Remove 30 s delay and clean legacy code
+## [3.4.6] - 2026-01-13
 
-## v2.2.7 (2022/09/12)
+### 🔄 Changed
+- **优化速度**
+  - 删除或减少过于保守的控件等待时间
 
-* Temporary fix: add 30s delay
-* Update README.md
+## [3.4.5] - 2026-01-11
 
-## v2.2.6 (2022/07/31)
+### ✨ Added
+- **增加计数功能**
+  - 支持在 WebUI 记录与查看成功次数
+- **FireFox 参数**
+  - 增加 FireFox 站点隔离机制开关
+- **提示词违规提示**
+  - 提示词违规时提示内容被阻止
 
-* Fix Cloudflare detection in POST requests
+### 🐛 Fixed
+- **修复图片上传**
+  - 修复 LMArena 因模型选择与图片上传的顺序错误导致的图片上传失败
 
-## v2.2.5 (2022/07/30)
+## [3.4.4] - 2026-01-10
 
-* Update GitHub actions to build executables with NodeJs 16
-* Update Cloudflare selectors and add HTML samples
-* Install Firefox 94 instead of the latest Nightly
-* Update dependencies
-* Upgrade Puppeteer (#396)
+### ✨ Added
+- **新增适配器**
+  - 支持豆包图片生成与文本生成适配器
 
-## v2.2.4 (2022/04/17)
+### 🐛 Fixed
+- **未捕获的超时错误**
+  - 修复因未捕获的超时错误导致的程序崩溃
+- **模型选择**
+  - 修复 LMArena 模型选择的问题并同步模型列表
 
-* Detect DDoS-Guard challenge
+## [3.4.3] - 2025-12-26
 
-## v2.2.3 (2022/04/16)
+### ✨ Added
+- **适配器描述**
+  - 为每个适配器添加描述，可以在 WebUI 中的适配器设置页面点击查看每个适配器的描述和使用方法。
+- **适配器模型管理**
+  - 为每个适配器添加模型列表管理，支持黑名单和白名单，可用于禁用网站出现问题的模型
+- **调试适配器**
+  - 多种检测网站聚合，IP 纯净度查询等，并初步测试自动过盾
 
-* Fix 2000 ms navigation timeout
-* Update README.md (libseccomp2 package in Debian)
-* Update README.md (clarify proxy parameter) (#307)
-* Update NPM dependencies
-* Disable Cloudflare ban detection
+## [3.4.3] - 2025-12-26
 
-## v2.2.2 (2022/03/19)
+### 🐛 Fixed
+- **Gemini**：修复因懒加载导致的等待图片超时问题
 
-* Fix ban detection. Resolves #330 (#336)
+## [3.4.2] - 2025-12-25
 
-## v2.2.1 (2022/02/06)
+### 🔄 Changed
+- **浏览器指纹**
+  - 增加 WebGL 和 Canvas 噪点的持久化，防止频繁变化
+  - 清洗插件列表，防止出现 FireFox 中有 Chrome 内置的 PDF 阅读器插件
+  - 清洗 UA 标识，防止出现未来浏览器版本，导致某些网站报错403 (如：aistudio)
+- **关闭动画**
+  - 通过 about:config 中的设置禁用背景高斯模糊 CSS 和减少动画，节省资源占用
 
-* Fix max timeout error in some pages
-* Avoid crashing in NodeJS 17 due to Unhandled promise rejection
-* Improve proxy validation and debug traces
-* Remove @types/puppeteer dependency
+## [3.4.1] - 2025-12-24
 
-## v2.2.0 (2022/01/31)
+### ✨ Added
+- **新增适配器**
+  - 支持 Google Flow 图片生成适配器
 
-* Increase default BROWSER_TIMEOUT=40000 (40 seconds)
-* Fix Puppeter deprecation warnings
-* Update base Docker image Alpine 3.15 / NodeJS 16
-* Build precompiled binaries with NodeJS 16
-* Update Puppeter and other dependencies
-* Add support for Custom CloudFlare challenge
-* Add support for DDoS-GUARD challenge
+### 🐛 Fixed
+- **Gemini Business**：修复因懒加载导致的等待图片超时问题
 
-## v2.1.0 (2021/12/12)
+## [3.4.0] - 2025-12-23
 
-* Add aarch64 to user agents to be replaced (#248)
-* Fix SOCKSv4 and SOCKSv5 proxy. resolves #214 #220
-* Remove redundant JSON key (postData) (#242)
-* Make test URL configurable with TEST_URL env var. resolves #240
-* Bypass new Cloudflare protection
-* Update donation links
+### ✨ Added
+- **新增适配器**
+  - 支持 ChatGPT 文本生成适配器
+  - 支持 zAI 文本生成适配器
+  - 支持 DeepSeek 文本生成适配器
+  - 支持 Sora 视频生成适配器
 
-## v2.0.2 (2021/10/31)
+### 🔄 Changed
+- **适配器实现更改**
+  - zAI 图片生成适配器不再使用拦截请求修改响应体的方式，改为UI选择模型列表，并且Nano Banana Pro 支持选择1K、2K、4K
 
-* Fix SOCKS5 proxy. Resolves #214
-* Replace Firefox ERS with a newer version
-* Catch startup exceptions and give some advices
-* Add env var BROWSER_TIMEOUT for slow systems
-* Fix NPM warning in Docker images
+## [3.3.2] - 2025-12-22
 
-## v2.0.1 (2021/10/24)
+### 🔄 Changed
+- **配置文件**
+  - 自动复制初始化配置文件，并放进`data/config.yaml`，Docker友好化
+  - 优化 Dockerfile
+  - 初始化脚本不再依赖配置文件，支持交互式和参数传入式配置代理
+  - 优化 WebUI 文案和日志排列
 
-* Check user home dir before testing web browser installation
+### ❌ Removed
+- **删除测试脚本**
+  - 现在有 WebUI 测试了，已经无需 test 脚本了
 
-## v2.0.0 (2021/10/20)
+## [3.3.1] - 2025-12-21
 
-FlareSolverr 2.0.0 is out with some important changes:
+### ✨ Added
+- **新增适配器**
+  - 支持 Gemini 网页版文本生成
+  - 支持 ChatGPT 图片生成
+- **支持视频生成**
+  - 支持在 Gemini 网页版和 Gemini Enterprise Business 图片生成适配器中生成视频
 
-* It is capable of solving the automatic challenges of Cloudflare. CAPTCHAs (hCaptcha) cannot be resolved and the old solvers have been removed.
-* The Chrome browser has been replaced by Firefox. This has caused some functionality to be removed. Parameters: `userAgent`, `headers`, `rawHtml` and `downloadare` no longer available.
-* Included `proxy` support without user/password credentials. If you are writing your own integration with FlareSolverr, make sure your client uses the same User-Agent header and Proxy that FlareSolverr uses. Those values together with the Cookie are checked and detected by Cloudflare.
-* FlareSolverr has been rewritten from scratch. From now on it should be easier to maintain and test.
-* If you are using Jackett make sure you have version v0.18.1041 or higher. FlareSolverSharp v2.0.0 is out too.
+### 🔄 Changed
+- **优化图片下载方式**
+  - 让文件下载步骤直接继承浏览器上下文减少特征
 
-Complete changelog:
+## [3.3.0] - 2025-12-20
 
-* Bump version 2.0.0
-* Set puppeteer timeout half of maxTimeout param. Resolves #180
-* Add test for blocked IP
-* Avoid reloading the page in case of error
-* Improve Cloudflare detection
-* Fix version
-* Fix browser preferences and proxy
-* Fix request.post method and clean error traces
-* Use Firefox ESR for Docker images
-* Improve Firefox start time and code clean up
-* Improve bad request management and tests
-* Build native packages with Firefox
-* Update readme
-* Improve Docker image and clean TODOs
-* Add proxy support
-* Implement request.post method for Firefox
-* Code clean up, remove returnRawHtml, download, headers params
-* Remove outdated chaptcha solvers
-* Refactor the app to use Express server and Jest for tests
-* Fix Cloudflare resolver for Linux ARM builds
-* Fix Cloudflare resolver
-* Replace Chrome web browser with Firefox
-* Remove userAgent parameter since any modification is detected by CF
-* Update dependencies
-* Remove Puppeter steath plugin
-
-## v1.2.9 (2021/08/01)
-
-* Improve "Execution context was destroyed" error handling
-* Implement returnRawHtml parameter. resolves #172 resolves #165
-* Capture Docker stop signal. resolves #158
-* Reduce Docker image size 20 MB
-* Fix page reload after challenge is solved. resolves #162 resolves #143
-* Avoid loading images/css/fonts to speed up page load
-* Improve Cloudflare IP ban detection
-* Fix vulnerabilities
-
-## v1.2.8 (2021/06/01)
-
-* Improve old JS challenge waiting. Resolves #129
-
-## v1.2.7 (2021/06/01)
-
-* Improvements in Cloudflare redirect detection. Resolves #140
-* Fix installation instructions
-
-## v1.2.6 (2021/05/30)
-
-* Handle new Cloudflare challenge. Resolves #135 Resolves #134
-* Provide reference Systemd unit file. Resolves #72
-* Fix EACCES: permission denied, open '/tmp/flaresolverr.txt'. Resolves #120
-* Configure timezone with TZ env var. Resolves #109
-* Return the redirected URL in the response (#126)
-* Show an error in hcaptcha-solver. Resolves #132
-* Regenerate package-lock.json lockfileVersion 2
-* Update issue template. Resolves #130
-* Bump ws from 7.4.1 to 7.4.6 (#137)
-* Bump hosted-git-info from 2.8.8 to 2.8.9 (#124)
-* Bump lodash from 4.17.20 to 4.17.21 (#125)
-
-## v1.2.5 (2021/04/05)
-
-* Fix memory regression, close test browser
-* Fix release-docker GitHub action
-
-## v1.2.4 (2021/04/04)
-
-* Include license in release zips. resolves #75
-* Validate Chrome is working at startup
-* Speedup Docker image build
-* Add health check endpoint
-* Update issue template
-* Minor improvements in debug traces
-* Validate environment variables at startup. resolves #101
-* Add FlareSolverr logo. resolves #23
-
-## v1.2.3 (2021/01/10)
-
-* CI/CD: Generate release changelog from commits. resolves #34
-* Update README.md
-* Add donation links
-* Simplify docker-compose.yml
-* Allow to configure "none" captcha resolver
-* Override docker-compose.yml variables via .env resolves #64 (#66)
-
-## v1.2.2 (2021/01/09)
-
-* Add documentation for precompiled binaries installation
-* Add instructions to set environment variables in Windows
-* Build Windows and Linux binaries. resolves #18
-* Add release badge in the readme
-* CI/CD: Generate release changelog from commits. resolves #34
-* Add a notice about captcha solvers
-* Add Chrome flag --disable-dev-shm-usage to fix crashes. resolves #45
-* Fix Docker CLI documentation
-* Add traces with captcha solver service. resolves #39
-* Improve logic to detect Cloudflare captcha. resolves #48
-* Move Cloudflare provider logic to his own class
-* Simplify and document the "return only cookies" parameter
-* Show message when debug log is enabled
-* Update readme to add more clarifications. resolves #53 (#60)
-* issue_template: typo fix (#52)
-
-## v1.2.1 (2020/12/20)
-
-* Change version to match release tag / 1.2.0 => v1.2.0
-* CI/CD Publish release in GitHub repository. resolves #34
-* Add welcome message in / endpoint
-* Rewrite request timeout handling (maxTimeout) resolves #42
-* Add http status for better logging
-* Return an error when no selectors are found, #25
-* Add issue template, fix #32
-* Moving log.html right after loading the page and add one on reload, fix #30
-* Update User-Agent to match chromium version, ref: #15 (#28)
-* Update install from source code documentation
-* Update readme to add Docker instructions (#20)
-* Clean up readme (#19)
-* Add docker-compose
-* Change default log level to info
-
-## v1.2.0 (2020/12/20)
-
-* Fix User-Agent detected by CouldFlare (Docker ARM) resolves #15
-* Include exception message in error response
-* CI/CD: Rename GitHub Action build => publish
-* Bump version
-* Fix TypeScript compilation and bump minor version
-* CI/CD: Bump minor version
-* CI/CD: Configure GitHub Actions
-* CI/CD: Configure GitHub Actions
-* CI/CD: Bump minor version
-* CI/CD: Configure Build GitHub Action
-* CI/CD: Configure AutoTag GitHub Action (#14)
-* CI/CD: Build the Docker images with GitHub Actions (#13)
-* Update dependencies
-* Backport changes from Cloudproxy (#11)
+### ✨ Added
+- **新增适配器**
+  - 支持 ZenMux 
+
+### 🔄 Changed
+- **清理历史遗留**
+  - 清除历史遗留的多余的逻辑
+
+## [3.2.1] - 2025-12-20
+
+### ✨ Added
+- **WebUI**
+  - 完善 WebUI 功能，添加接口测试和日志查看器，优化部分布局
+- **日志记录**
+  - 会在 data/temp 文件夹下记录日志（最大5MB轮转）
+
+### 🔄 Changed
+- **初始化失败逻辑**
+  - 程序初始化失败后不会直接推出，以便利用 WebUI 修改错误的配置
+- **LMArena 图片适配器**
+  - 支持通过配置直接返回图片URL (但其他不支持该选项的适配器仍然会返回 Base64)
+
+## [3.2.0] - 2025-12-19
+
+### ✨ Added
+- **WebUI**
+  - 为项目添加了网页版管理工具，便于修改配置文件（可能会有问题，可随时反馈）
+
+- **增加看门狗**
+  - 增加看门狗机制（Supervisor），保证程序失败重载和利于利用 WebUI 完整重启程序
+  - 同时将 Linux 上的虚拟显示器和 VNC 服务器启动程序也迁移至看门狗机制
+
+## [3.1.0] - 2025-12-17
+
+### ✨ Added
+- **支持文本模型**
+  - 添加专门的文本模型适配器（目前仅支持 LMArena 和 Gemini Busineess）
+  - 支持网络搜索模型，例如 gemini-3-pro-grounding、grok-4-1-fast-search
+- **图片调度**
+  - 若有适配器同时支持同一个模型，但是图片策略不同，将会优先将带图片的请求分发给支持图片的适配器
+- **为自动通过验证码做准备**
+  - 新增测试适配器 turnstile_test ，为将来需要自动过 CloudFlare 验证码做准备
+
+### 🔄 Changed
+- **项目名称更新**
+  - 因支持的功能越来越多，决定为项目改名为 WebAI2API
+
+## [3.0.1] - 2025-12-16
+
+### ✨ Added
+- **故障转移系统**
+  - 实现了基于 Pool 的自动故障转移：当某个 Worker 执行任务失败（如 API 超时、页面崩溃、被限流）时，系统会自动寻找下一个支持该模型的 Worker 进行重试。
+  - **Merge 模式增强**：Merge Worker 内部也会在不同的适配器之间进行故障转移。
+
+## [3.0.0] - 2025-12-14
+
+### ✨ Added
+- **多窗口多账号支持**
+  - 架构升级，支持同时管理多个浏览器实例和多个标签页。
+  - 实现了浏览器实例间的数据（Cookies/Storage）完全隔离。
+- **Cookies 管理**
+  - 新增 `/v1/cookies` 接口，支持获取指定 browser instance 的 Cookies。
+
+### 🔄 Changed
+- **配置系统重构**
+  - 配置文件结构大幅调整，采用更清晰的 `backend.pool` 结构配置 Worker。
+
+## [2.4.0] - 2025-12-13
+
+### ✨ Added
+- **浏览器伪装增强**
+  - 集成 GEOIP 数据库，实现基于 IP 的自动时区伪装。
+- **初始化脚本 (init.js)**
+  - 支持 `npm run init -- -custom` 自定义初始化。
+  - 自动下载 GeoLite2 sum数据库。
+- **服务器自检**
+  - 启动时自动检查依赖完整性和环境补丁。
+- **Merge 模式监控**
+  - 闲时自动跳转到指定网站以维持会话活跃（保活）。
+
+### 🔄 Changed
+- **代码重构**
+  - 服务器代码模块化 (`src/server/`).
+  - 目录结构重新整理。
+
+## [2.3.0] - 2025-12-12
+
+### ✨ Added
+- **新适配器支持**
+  - 初步支持 Gemini 网页版 (`gemini.js`).
+
+### 🔄 Changed
+- **流式接口优化**
+  - 移除了全局开关，改为由请求体参数 `stream: true` 动态控制。
+  - **保活机制**：流式模式下支持无限排队，并通过 SSE 心跳包防止连接超时。
+  - **拒绝策略**：非流式请求在队列满时立即拒绝，避免无限等待。
+
+## [2.2.3] - 2025-12-12
+
+### ✨ Added
+- **后端聚合**
+  - 实现了根据模型 ID 自动路由到对应适配器的逻辑。
+
+### 🐛 Fixed
+- **Mac 兼容性**
+  - 修复了 MacOS 初始化步骤缺失导致的启动失败。
+
+## [2.2.2] - 2025-12-12
+
+### ✨ Added
+- **Docker 支持**
+  - 发布 Docker 镜像
+
+## [2.2.1] - 2025-12-12
+
+### ✨ Added
+- **Cookie 导出**
+  - 利用自动续登机制获取最新 Cookie，供外部工具使用。
+
+### 🐛 Fixed
+- **自动续登修复**：改为全局监听，修复了部分场景下不触发的问题。
+- **杂项修复**：VNC 端口冲突、启动参数优化、zAI 错误反馈优化。
+
+## [2.2.0] - 2025-12-11
+
+### ✨ Added
+- **新适配器支持**
+  - 支持 zAI (zai.is)，含自动 Discord 登录处理。
+
+### 🐛 Fixed
+- **Gemini Business**：修复监听器重复触发问题。
+- **Mac 输入法**：修复拟人输入无法全选的问题。
+
+## [2.0.0] - 2025-12-06
+
+### 💥 Breaking Changes
+- **核心迁移**
+  - 从 Puppeteer 迁移至 **Playwright + Camoufox**。
+  - 旧版代码归档至 `puppeteer-edition` 分支。
+
+### ✨ Added
+- **新适配器支持**
+  - 支持 Nano Banana Free。
+- **功能特性**
+  - 内置 XVFB/VNC 支持命令。
+  - 支持 Gemini Business 过期自动续登。
