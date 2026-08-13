@@ -28,7 +28,8 @@ RUN apt-get update && apt-get install -y \
 COPY package.json pnpm-lock.yaml ./
 COPY scripts/ ./scripts/
 COPY patches/ ./patches/
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+
+RUN npm install -g pnpm &&  pnpm approve-builds && pnpm install --frozen-lockfile
 
 # 3. 复制源码并初始化
 COPY . .
