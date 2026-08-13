@@ -30,6 +30,7 @@
 		"proxy-chain": "^2.6.0",
 		"sharp": "^0.34.5",
 		"socks-proxy-agent": "^8.0.5",
-		"yaml": "^2.8.2"
+		"yaml": "^2.8.2",
+		"openai": "^7.4.0"
 	}
 }
