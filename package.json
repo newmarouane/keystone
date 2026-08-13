@@ -31,5 +31,11 @@
 		"sharp": "^0.34.5",
 		"socks-proxy-agent": "^8.0.5",
 		"yaml": "^2.8.2"
-	}
+	},
+	"pnpm": {
+	    "onlyBuiltDependencies": [
+	      "better-sqlite3",
+	      "sharp"
+	    ]
+	  }
 }
