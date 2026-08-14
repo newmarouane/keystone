@@ -5,4 +5,4 @@ FROM foxhui/webai-2api:latest
 WORKDIR /app
 
 
-EXPOSE 8191
+EXPOSE 3000
