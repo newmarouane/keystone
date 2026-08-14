@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdbus-glib-1-2 \
     python3 \
     build-essential \
-    xauth \
     && rm -rf /var/lib/apt/lists/*
 
 #    xauth \
@@ -31,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #ENV MOZ_DISABLE_CONTENT_SANDBOX=1
 
 # 2. Force software rendering since there is no GPU in Docker
-#ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV LIBGL_ALWAYS_SOFTWARE=1
 
 # 2. 复制依赖文件、脚本和补丁目录，然后安装
 COPY package.json pnpm-lock.yaml ./
