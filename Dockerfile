@@ -4,4 +4,4 @@ FROM 21hsmw/flaresolverr:nodriver
 WORKDIR /app
 
 
-EXPOSE 3000
+EXPOSE 8191
