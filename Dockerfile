@@ -31,9 +31,8 @@ COPY patches/ ./patches/
 
 RUN npm install
 RUN npm install -g pnpm
-RUN npm install openai
 #RUN pnpm approve-builds
-#RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # 3. 复制源码并初始化
 COPY . .
