@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true
 
 # 1. 安装系统依赖
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb \
     x11vnc \
     libasound2 \
@@ -22,7 +22,16 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     make \
     g++ \
+    dbus-x11 \
+    libdbus-glib-1-2 \
+    libdrm2 \
     && rm -rf /var/lib/apt/lists/*
+
+# 1. Bypass the user namespace sandbox check (fixes the EPERM / signal 11 crashes)
+ENV MOZ_DISABLE_CONTENT_SANDBOX=1
+
+# 2. Force software rendering since there is no GPU in Docker
+ENV LIBGL_ALWAYS_SOFTWARE=1
 
 # 2. 复制依赖文件、脚本和补丁目录，然后安装
 COPY package.json pnpm-lock.yaml ./
@@ -42,4 +51,5 @@ RUN npm run init
 EXPOSE 3000 5900
 
 # 4. 启动服务（配置文件会自动从 config.example.yaml 复制到 data/config.yaml）
-CMD ["npm", "start", "--", "-xvfb", "-vnc"]
+#CMD ["npm", "start", "--", "-xvfb", "-vnc"]
+CMD ["xvfb-run", "--auto-servernum", "npm", "start", "--", "-xvfb", "-vnc"]
