@@ -20,11 +20,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdbus-glib-1-2 \
     python3 \
     build-essential \
-    make \
-    g++ \
-    xauth \
     && rm -rf /var/lib/apt/lists/*
 
+#    xauth \
 #    dbus-x11 \
 #    libdbus-glib-1-2 \
 #    libdrm2 \
