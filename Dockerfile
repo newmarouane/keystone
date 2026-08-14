@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdbus-glib-1-2 \
     python3 \
     build-essential \
+    xauth \
     && rm -rf /var/lib/apt/lists/*
 
 #    xauth \
