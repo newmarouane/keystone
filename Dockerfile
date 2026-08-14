@@ -32,7 +32,7 @@ COPY patches/ ./patches/
 RUN npm install
 RUN npm install -g pnpm
 #RUN pnpm approve-builds
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --config.dangerouslyAllowAllBuilds=true
 
 # 3. 复制源码并初始化
 COPY . .
