@@ -31,6 +31,7 @@ COPY patches/ ./patches/
 
 RUN npm install
 RUN npm install -g pnpm
+RUN npm install openai
 #RUN pnpm approve-builds
 #RUN pnpm install --frozen-lockfile
 
