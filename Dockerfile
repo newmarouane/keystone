@@ -28,7 +28,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #    libdbus-glib-1-2 \
 #    libdrm2 \
 # 1. Bypass the user namespace sandbox check (fixes the EPERM / signal 11 crashes)
-#ENV MOZ_DISABLE_CONTENT_SANDBOX=1
+ENV MOZ_DISABLE_CONTENT_SANDBOX=1
+ENV MOZ_DISABLE_GMP_SANDBOX=1
 
 # 2. Force software rendering since there is no GPU in Docker
 ENV LIBGL_ALWAYS_SOFTWARE=1
