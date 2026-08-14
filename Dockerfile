@@ -52,5 +52,5 @@ RUN npm run init
 EXPOSE 3000 5900
 
 # 4. 启动服务（配置文件会自动从 config.example.yaml 复制到 data/config.yaml）
-#CMD ["npm", "start", "--", "-xvfb", "-vnc"]
-CMD ["xvfb-run", "--auto-servernum", "npm", "start", "--", "-xvfb", "-vnc"]
+CMD ["npm", "start", "--", "-xvfb", "-vnc"]
+#CMD ["xvfb-run", "--auto-servernum", "npm", "start", "--", "-xvfb", "-vnc"]
