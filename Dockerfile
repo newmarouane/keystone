@@ -22,10 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     make \
     g++ \
-    dbus-x11 \
     xauth \
     && rm -rf /var/lib/apt/lists/*
 
+#    dbus-x11 \
 #    libdbus-glib-1-2 \
 #    libdrm2 \
 # 1. Bypass the user namespace sandbox check (fixes the EPERM / signal 11 crashes)
