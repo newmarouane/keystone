@@ -6,4 +6,4 @@ FROM n8nio/n8n
 WORKDIR /app
 
 
-EXPOSE 3000
+EXPOSE 5678
